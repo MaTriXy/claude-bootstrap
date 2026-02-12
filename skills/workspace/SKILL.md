@@ -1,8 +1,11 @@
+---
+name: workspace
+description: Dynamic multi-repo and monorepo awareness for Claude Code. Analyze workspace topology, track API contracts, and maintain cross-repo context.
+---
+
 # Workspace Analysis Skill
 
 > Dynamic multi-repo and monorepo awareness for Claude Code. Analyze workspace topology, track API contracts, and maintain cross-repo context.
-
----
 
 ## The Problem
 
