@@ -427,7 +427,7 @@ quick_validate() {
     echo ""
     if [ "$errors" -gt 0 ]; then
         echo -e "${RED}Bootstrap has issues. Run full validation:${NC}"
-        echo "  ~/.claude-bootstrap/tests/validate-structure.sh"
+        echo "  $ROOT_DIR/tests/validate-structure.sh"
         return 1
     else
         echo -e "${GREEN}Bootstrap installation OK${NC}"

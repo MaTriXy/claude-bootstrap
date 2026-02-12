@@ -6,10 +6,12 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
-BOOTSTRAP_DIR="$HOME/.claude-bootstrap"
 
 echo "Installing Claude Bootstrap..."
 echo ""
+
+# Save bootstrap directory location for other scripts
+echo "$SCRIPT_DIR" > "$HOME/.claude/.bootstrap-dir"
 
 # Create directories
 mkdir -p "$CLAUDE_DIR/commands"
@@ -47,17 +49,6 @@ echo "✓ Installed git hooks (templates)"
 # Copy hook installer script
 cp "$SCRIPT_DIR/scripts/install-hooks.sh" "$CLAUDE_DIR/" 2>/dev/null || true
 chmod +x "$CLAUDE_DIR/install-hooks.sh" 2>/dev/null || true
-
-# Create symlink for ~/.claude-bootstrap (for validation scripts)
-if [ "$SCRIPT_DIR" != "$BOOTSTRAP_DIR" ]; then
-    if [ -L "$BOOTSTRAP_DIR" ]; then
-        rm "$BOOTSTRAP_DIR"
-    fi
-    if [ ! -d "$BOOTSTRAP_DIR" ]; then
-        ln -s "$SCRIPT_DIR" "$BOOTSTRAP_DIR"
-        echo "✓ Created symlink: ~/.claude-bootstrap -> $SCRIPT_DIR"
-    fi
-fi
 
 # Check for Ralph Loop plugin
 echo ""
@@ -103,5 +94,5 @@ echo "Git Hooks (per-project):"
 echo "  cd your-project && ~/.claude/install-hooks.sh"
 echo ""
 echo "Validation:"
-echo "  ~/.claude-bootstrap/tests/validate-structure.sh --full"
+echo "  $SCRIPT_DIR/tests/validate-structure.sh --full"
 echo ""
