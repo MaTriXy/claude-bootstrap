@@ -23,8 +23,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Integration guide for Jira, Asana, Linear, and GitHub Issues
   - Maps tickets directly to the agent-teams 10-task pipeline
 
+#### Bug Fixes
+- **Fix pre-push hook false positive** - Hook was blocking pushes even when review passed with 0 Critical/High issues (fixes #8, reported by @shawnyeager)
+  - `grep` pattern matched "Critical" in table headers and pass messages
+  - Now checks for explicit `Status: ✅ PASS` / `Status: ❌` lines instead
+
+#### Community Contributions
+- **Flexible install directory** - Bootstrap can now be cloned anywhere, not just `~/.claude-bootstrap` (PR #9 by @victortrac)
+  - Install path saved to `~/.claude/.bootstrap-dir` for runtime resolution
+  - Removes fragile symlink approach
+- **Workspace skill frontmatter fix** - Added missing YAML frontmatter to workspace skill (PR #9 by @victortrac)
+
 ### Changed
 - Total skills increased from 54 to **55 skills**
+
+### Contributors
+- @victortrac - Flexible install path, workspace skill fix (PR #9)
+- @shawnyeager - Pre-push hook bug report (#8)
 
 ---
 

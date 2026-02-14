@@ -59,30 +59,46 @@ while read local_ref local_sha remote_ref remote_sha; do
 
     # Run code review with --print flag for non-interactive output
     if claude --print "/code-review $changed_files" > "$review_output" 2>&1; then
-        # Check for Critical or High severity issues
-        if grep -qE '🔴|Critical|CRITICAL' "$review_output"; then
-            echo -e "${RED}❌ PUSH BLOCKED - Critical issues found${NC}"
+        # Check the explicit Status line first (most reliable)
+        if grep -q "Status: ✅ PASS" "$review_output"; then
+            echo -e "${GREEN}✅ Code review passed${NC}"
+            # Show summary if there are medium/low issues
+            if grep -qE '🟡|🟢' "$review_output"; then
+                echo ""
+                echo -e "${YELLOW}ℹ️  Advisory issues (non-blocking):${NC}"
+                grep -E '🟡|🟢' "$review_output" | head -5
+            fi
+        elif grep -q "Status: ❌" "$review_output"; then
+            echo -e "${RED}❌ PUSH BLOCKED - Critical/High issues found${NC}"
             echo ""
             cat "$review_output"
             echo ""
-            echo -e "${RED}Fix critical issues before pushing.${NC}"
-            rm "$review_output"
-            exit 1
-        elif grep -qE '🟠|High|HIGH' "$review_output"; then
-            echo -e "${RED}❌ PUSH BLOCKED - High severity issues found${NC}"
-            echo ""
-            cat "$review_output"
-            echo ""
-            echo -e "${RED}Fix high severity issues before pushing.${NC}"
+            echo -e "${RED}Fix critical/high issues before pushing.${NC}"
             rm "$review_output"
             exit 1
         else
-            echo -e "${GREEN}✅ Code review passed${NC}"
-            # Show summary if there are medium/low issues
-            if grep -qE '🟡|🟢|Medium|Low' "$review_output"; then
+            # Fallback: parse severity counts from the summary table
+            # Match "| Critical | N |" or "Critical: N" patterns
+            critical_count=$(grep -oP 'Critical[:\s|]+\K[0-9]+' "$review_output" | head -1 || echo "0")
+            high_count=$(grep -oP 'High[:\s|]+\K[0-9]+' "$review_output" | head -1 || echo "0")
+            critical_count=${critical_count:-0}
+            high_count=${high_count:-0}
+
+            if [ "$critical_count" -gt 0 ] || [ "$high_count" -gt 0 ]; then
+                echo -e "${RED}❌ PUSH BLOCKED - Critical: $critical_count, High: $high_count${NC}"
                 echo ""
-                echo -e "${YELLOW}ℹ️  Advisory issues (non-blocking):${NC}"
-                grep -E '🟡|🟢|Medium|Low' "$review_output" | head -5
+                cat "$review_output"
+                echo ""
+                echo -e "${RED}Fix critical/high issues before pushing.${NC}"
+                rm "$review_output"
+                exit 1
+            else
+                echo -e "${GREEN}✅ Code review passed${NC}"
+                if grep -qE '🟡|🟢' "$review_output"; then
+                    echo ""
+                    echo -e "${YELLOW}ℹ️  Advisory issues (non-blocking):${NC}"
+                    grep -E '🟡|🟢' "$review_output" | head -5
+                fi
             fi
         fi
     else
