@@ -28,7 +28,11 @@ fi
 # Check if hooks exist
 if [ ! -d "$HOOKS_DIR" ]; then
     echo -e "${RED}❌ Error: Hook templates not found${NC}"
-    echo "   Run ~/.claude-bootstrap/install.sh first."
+    if [ -f "$CLAUDE_DIR/.bootstrap-dir" ]; then
+        echo "   Run $(cat "$CLAUDE_DIR/.bootstrap-dir")/install.sh first."
+    else
+        echo "   Run install.sh from your claude-bootstrap clone first."
+    fi
     exit 1
 fi
 

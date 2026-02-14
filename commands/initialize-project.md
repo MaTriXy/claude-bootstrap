@@ -11,8 +11,10 @@ Full project setup with Claude coding guardrails. Works for both new and existin
 **FIRST**, verify claude-bootstrap is properly installed:
 
 ```bash
+# Read bootstrap directory (saved during install)
+BOOTSTRAP_DIR=$(cat ~/.claude/.bootstrap-dir 2>/dev/null)
 # Run quick validation
-~/.claude-bootstrap/tests/validate-structure.sh --quick
+"$BOOTSTRAP_DIR/tests/validate-structure.sh" --quick
 ```
 
 This checks:
@@ -22,7 +24,7 @@ This checks:
 
 **If validation fails:**
 - Show the error to user
-- Suggest running: `cd ~/.claude-bootstrap && git pull && ./install.sh`
+- Suggest running: `cd "$BOOTSTRAP_DIR" && git pull && ./install.sh`
 - Offer to continue anyway or abort
 
 **If validation passes:**
@@ -1163,7 +1165,7 @@ To update skills for all future projects:
 
 ```bash
 # Pull latest skills
-cd ~/.claude-bootstrap
+cd "$(cat ~/.claude/.bootstrap-dir)"
 git pull
 
 # Reinstall
@@ -1185,11 +1187,12 @@ Skills will be updated while preserving project-specific configuration.
 If `/initialize-project` shows validation errors:
 
 ```bash
+BOOTSTRAP_DIR=$(cat ~/.claude/.bootstrap-dir 2>/dev/null)
 # Full validation to see all issues
-~/.claude-bootstrap/tests/validate-structure.sh --full
+"$BOOTSTRAP_DIR/tests/validate-structure.sh" --full
 
 # Quick validation (what initialize-project runs)
-~/.claude-bootstrap/tests/validate-structure.sh --quick
+"$BOOTSTRAP_DIR/tests/validate-structure.sh" --quick
 ```
 
 Common issues:

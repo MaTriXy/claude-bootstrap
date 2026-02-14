@@ -61,9 +61,9 @@ This toolkit encodes those learnings into reusable skills.
 ## Quick Start
 
 ```bash
-# Clone and install
-git clone https://github.com/alinaqi/claude-bootstrap.git ~/.claude-bootstrap
-cd ~/.claude-bootstrap && ./install.sh
+# Clone and install (clone anywhere you like)
+git clone https://github.com/alinaqi/claude-bootstrap.git
+cd claude-bootstrap && ./install.sh
 
 # In any project directory
 claude
@@ -652,7 +652,7 @@ claude
 
 ### Update Skills Globally
 ```bash
-cd ~/.claude-bootstrap
+cd "$(cat ~/.claude/.bootstrap-dir)"
 git pull
 ./install.sh
 
@@ -819,7 +819,7 @@ Minimum 80% coverage enforced. CI blocks PRs below threshold.
 ### How do I update skills?
 
 ```bash
-cd ~/.claude-bootstrap
+cd "$(cat ~/.claude/.bootstrap-dir)"
 git pull
 ./install.sh
 ```
