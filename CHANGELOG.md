@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.6.0] - 2026-02-14
+
+### Added
+
+#### AI-Native Ticket Writing
+- **Ticket Craft skill** - Write Jira/Asana/Linear tickets optimized for Claude Code execution
+  - INVEST+C criteria: standard INVEST plus "Claude-Ready" verification
+  - 4 ticket templates: Feature, Bug, Tech Debt, Epic Breakdown
+  - Claude Code Context section: file refs, pattern refs, verification commands, constraints
+  - Claude Code Ready Checklist: 16-point validation before tickets enter sprint
+  - Anti-patterns guide: 6 common ticket-writing mistakes that cause AI agents to fail
+  - Story point calibration for AI agents (different from human estimation)
+  - Epic slicing techniques: by workflow, data variation, user role, CRUD, happy path
+  - Given-When-Then acceptance criteria format
+  - Integration guide for Jira, Asana, Linear, and GitHub Issues
+  - Maps tickets directly to the agent-teams 10-task pipeline
+
+### Changed
+- Total skills increased from 54 to **55 skills**
+
+---
+
 ## [2.5.0] - 2026-02-07
 
 ### Added

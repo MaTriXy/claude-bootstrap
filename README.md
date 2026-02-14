@@ -539,6 +539,7 @@ Define before you build:
 | `commit-hygiene.md` | Atomic commits, PR size limits, commit thresholds, stacked PRs |
 | `code-deduplication.md` | Prevent semantic duplication with capability index, check-before-write |
 | `agent-teams.md` | Default agent team workflow - Team Lead, Quality, Security, Review, Merger + Feature agents |
+| `ticket-craft.md` | AI-native ticket writing - Jira/Asana/Linear tickets optimized for Claude Code execution |
 | `team-coordination.md` | Multi-person projects - shared state, todo claiming, handoffs, conflict prevention |
 | `security.md` | OWASP patterns, secrets management, security testing |
 | `credentials.md` | Centralized API key management from Access.txt |
@@ -871,7 +872,7 @@ Key principles:
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and updates.
 
-**Latest: v2.5.0** - 54 skills with Agent Teams default workflow, strict TDD pipeline, and `/spawn-team` command
+**Latest: v2.6.0** - 55 skills with AI-native ticket writing, INVEST+C criteria, and Claude Code Ready checklist
 
 ## License
 
