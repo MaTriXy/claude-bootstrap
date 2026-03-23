@@ -20,6 +20,13 @@ navigation.
 code graph. Only read full files when you need to modify them or need
 context beyond what the graph provides.
 
+**Consider graph when planning.** When planning any change — feature,
+refactor, bug fix — start by querying the graph to understand scope,
+dependencies, and blast radius. This applies to thinking and planning
+phases, not just implementation. Grep is still the right tool for
+searching string literals, log messages, config values, and content
+that lives outside code structure.
+
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │  GRAPH FIRST, FILE SECOND                                      │
@@ -101,6 +108,7 @@ when you need the full source to make edits.
 ## Workflow: Before Any Code Change
 
 ```
+0. PLAN       → get_architecture + search_graph to understand scope before planning
 1. LOCATE     → search_graph to find the symbol
 2. UNDERSTAND → get_code_snippet for context
 3. BLAST      → detect_changes to assess impact
@@ -109,18 +117,32 @@ when you need the full source to make edits.
 6. VERIFY     → detect_changes again to confirm scope
 ```
 
+**Step 0 applies to planning, not just coding.** When the user asks you to
+plan a feature, refactor, or fix — query the graph first to understand
+what exists, what depends on what, and what the scope looks like. This
+prevents plans based on wrong assumptions about the codebase.
+
 **Never skip step 3.** Blast radius analysis prevents unexpected breakage
 from changes to shared code.
 
 ---
 
-## Graph Data
+## Graph Data & Freshness
 
-- **Storage**: `.code-graph/` directory (auto-created by codebase-memory-mcp)
-- **Gitignore**: `.code-graph/` is gitignored (machine-generated, platform-specific)
+The graph stays fresh automatically through 3 layers — no manual rebuild needed:
+
+| Layer | Trigger | What Happens |
+|-------|---------|-------------|
+| **File watcher** | Every file save | codebase-memory-mcp detects changes and re-indexes affected files in real-time |
+| **Auto-index** | Session start | `auto_index: true` ensures graph is current when Claude Code starts |
+| **Post-commit hook** | Every `git commit` | Touches `.code-graph/.needs-update` marker — file watcher picks it up (~10ms, non-blocking) |
+
+**You do NOT need to manually re-index** unless you do a major restructure
+(rename entire directories, switch branches with massive diffs). In that
+case: `index_repository` once, then the 3 layers keep it fresh.
+
+- **Storage**: `.code-graph/` directory (auto-created, gitignored)
 - **MCP config**: `.mcp.json` at project root (committed, shared with team)
-- **Auto-update**: File watcher keeps graph in sync on file save
-- **Post-commit**: Hook triggers incremental update after each commit
 
 ---
 
