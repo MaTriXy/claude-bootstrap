@@ -50,6 +50,10 @@ echo "✓ Installed git hooks (templates)"
 cp "$SCRIPT_DIR/scripts/install-hooks.sh" "$CLAUDE_DIR/" 2>/dev/null || true
 chmod +x "$CLAUDE_DIR/install-hooks.sh" 2>/dev/null || true
 
+# Copy graph tools installer
+cp "$SCRIPT_DIR/scripts/install-graph-tools.sh" "$CLAUDE_DIR/" 2>/dev/null || true
+chmod +x "$CLAUDE_DIR/install-graph-tools.sh" 2>/dev/null || true
+
 # Check for Ralph Loop plugin
 echo ""
 if [ -d "$CLAUDE_DIR/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop" ]; then
@@ -92,6 +96,12 @@ echo "  /update-code-index    - Regenerate code index"
 echo ""
 echo "Git Hooks (per-project):"
 echo "  cd your-project && ~/.claude/install-hooks.sh"
+echo ""
+echo "Code Graph Tools:"
+echo "  ~/.claude/install-graph-tools.sh            - Install Tier 1 (default)"
+echo "  ~/.claude/install-graph-tools.sh --joern     - Also install Tier 2 (CPG)"
+echo "  ~/.claude/install-graph-tools.sh --codeql    - Also install Tier 3 (security)"
+echo "  ~/.claude/install-graph-tools.sh --all       - Install all tiers"
 echo ""
 echo "Validation:"
 echo "  $SCRIPT_DIR/tests/validate-structure.sh --full"

@@ -304,6 +304,15 @@ Ask for a brief description (1-2 sentences).
 
 *Check for anthropic/openai in dependencies.*
 
+### 4b. Code graph analysis level?
+- **Standard** (default) - Lightweight AST graph with symbol lookup, dependency analysis, blast radius
+- **Deep analysis** - Also enable Joern CPG (control flow, data flow, dead code detection)
+- **Security audit** - Also enable CodeQL (taint analysis, vulnerability detection)
+- **Full** - All three tiers
+
+*Tier 1 (codebase-memory-mcp) is always enabled for all projects. This question determines opt-in tiers.*
+*Auto-suggest: If security skill is included, suggest "Security audit". If AI-first, suggest "Deep analysis".*
+
 ### 5. What framework? (based on previous answers)
 **Backend:**
 - Python: FastAPI, Flask, Django
@@ -365,6 +374,7 @@ cp -r ~/.claude/skills/base/ .claude/skills/
 cp -r ~/.claude/skills/security/ .claude/skills/
 cp -r ~/.claude/skills/project-tooling/ .claude/skills/
 cp -r ~/.claude/skills/session-management/ .claude/skills/
+cp -r ~/.claude/skills/code-graph/ .claude/skills/
 ```
 
 **Always copy (overwrite with latest):**
@@ -372,6 +382,17 @@ cp -r ~/.claude/skills/session-management/ .claude/skills/
 - `security/` → `.claude/skills/security/`
 - `project-tooling/` → `.claude/skills/project-tooling/`
 - `session-management/` → `.claude/skills/session-management/`
+- `code-graph/` → `.claude/skills/code-graph/`
+
+**If deep analysis or security audit selected (question 4b):**
+- `cpg-analysis/` → `.claude/skills/cpg-analysis/`
+
+```bash
+# Copy CPG analysis skill if Tier 2 or 3 selected
+if [ "$GRAPH_TIER" != "standard" ]; then
+    cp -r ~/.claude/skills/cpg-analysis/ .claude/skills/
+fi
+```
 
 **For existing codebases (detected in Phase 1b):**
 - `existing-repo/` → `.claude/skills/existing-repo/` - Structure preservation, guardrails setup
@@ -445,6 +466,9 @@ venv/
 dist/
 build/
 
+# Code graph data (auto-generated)
+.code-graph/
+
 # IDE
 .idea/
 .vscode/settings.json
@@ -463,6 +487,98 @@ ANTHROPIC_API_KEY=
 # Client-side safe (public, non-sensitive)
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
+```
+
+### Step 4b: Configure Code Graph MCP Servers
+
+**This step runs for ALL projects** (Tier 1 is always-on).
+
+#### Create/merge .mcp.json
+
+```bash
+# Check if .mcp.json exists
+if [ -f ".mcp.json" ]; then
+    echo "Existing .mcp.json found - will merge code graph config"
+else
+    echo "Creating .mcp.json for code graph MCP servers"
+fi
+```
+
+**Always add (Tier 1 — codebase-memory-mcp):**
+```json
+{
+  "mcpServers": {
+    "codebase-memory": {
+      "command": "codebase-memory-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+**If Tier 2 selected (deep analysis / full), also add:**
+```json
+{
+  "mcpServers": {
+    "codebadger": {
+      "url": "http://localhost:4242/mcp",
+      "type": "http"
+    }
+  }
+}
+```
+
+**If Tier 3 selected (security audit / full), also add:**
+```json
+{
+  "mcpServers": {
+    "codeql": {
+      "command": "codeql-mcp",
+      "args": ["--database", ".code-graph/codeql-db"]
+    }
+  }
+}
+```
+
+**Merge strategy:** If `.mcp.json` already exists, read it, merge new `mcpServers` entries without overwriting existing ones, write back.
+
+#### Add .code-graph/ to .gitignore
+
+Ensure this entry exists in `.gitignore`:
+```gitignore
+# Code graph data (auto-generated, machine-specific)
+.code-graph/
+```
+
+#### Check if codebase-memory-mcp is installed
+
+```bash
+if ! command -v codebase-memory-mcp &> /dev/null; then
+    echo ""
+    echo "⚠ codebase-memory-mcp not found in PATH"
+    echo "  Install: ~/.claude/install-graph-tools.sh"
+    echo "  Or: https://github.com/DeusData/codebase-memory-mcp"
+    echo ""
+fi
+```
+
+#### Install post-commit graph update hook
+
+```bash
+if [ -d ".git" ]; then
+    # Append to existing post-commit hook (don't overwrite)
+    if [ -f ".git/hooks/post-commit" ]; then
+        if ! grep -q "code-graph" ".git/hooks/post-commit"; then
+            echo "" >> .git/hooks/post-commit
+            echo "# Code graph incremental update" >> .git/hooks/post-commit
+            cat ~/.claude/hooks/post-commit-graph >> .git/hooks/post-commit
+        fi
+    else
+        cp ~/.claude/hooks/post-commit-graph .git/hooks/post-commit
+        chmod +x .git/hooks/post-commit
+    fi
+    echo "✓ Post-commit graph update hook installed"
+fi
 ```
 
 ### Step 5: Create/update verification script
@@ -586,6 +702,8 @@ Read and follow these skills before writing any code:
 - .claude/skills/security/SKILL.md
 - .claude/skills/project-tooling/SKILL.md
 - .claude/skills/session-management/SKILL.md
+- .claude/skills/code-graph/SKILL.md
+- .claude/skills/cpg-analysis/SKILL.md (if deep analysis or security audit)
 - .claude/skills/[language]/SKILL.md
 - .claude/skills/[framework]/SKILL.md (if applicable)
 - .claude/skills/llm-patterns/SKILL.md (if AI-first)
@@ -684,6 +802,37 @@ When starting a new session:
 2. Check `_project_specs/todos/active.md`
 3. Review recent entries in `decisions.md` if context needed
 4. Continue from "Next Steps" in current-state.md
+
+## Code Graph (MCP)
+
+This project uses MCP-based code graph for optimized code navigation.
+
+### Available Tiers
+- **Tier 1** (always on): `codebase-memory-mcp` - AST graph, symbol lookup, blast radius
+- **Tier 2** (opt-in): Joern/CodeBadger - Full CPG, control/data flow analysis
+- **Tier 3** (opt-in): CodeQL - Taint analysis, security vulnerability detection
+
+### Usage Priority
+1. **Graph first** - Use MCP graph tools for symbol search, dependency tracing, impact analysis
+2. **File read second** - Only read full files when you need to modify code or need full context
+3. **Grep last** - Avoid grep when graph tools can answer the question faster
+
+### Configuration
+- MCP config: `.mcp.json` (project root, committed)
+- Graph data: `.code-graph/` (gitignored, auto-updated)
+- Post-commit hook: auto-updates graph on code changes
+
+### Key Graph Commands
+```bash
+# Install graph tools (run once per machine)
+~/.claude/install-graph-tools.sh
+
+# Install with deep CPG analysis
+~/.claude/install-graph-tools.sh --joern
+
+# Install with security auditing
+~/.claude/install-graph-tools.sh --codeql
+```
 
 ## Project-Specific Patterns
 [Any specific patterns for this project]
@@ -989,11 +1138,18 @@ Updated:
   - base.md (updated)
   - typescript.md (updated)
   - react-web.md (updated)
+  - code-graph.md (updated)
 ✓ Pre-push code review hook (installed/updated)
 
 Added:
 ✓ llm-patterns.md (new skill added)
 ✓ _project_specs/prompts/ (new directory)
+
+Code Graph:
+✓ .mcp.json configured (Tier 1: codebase-memory-mcp)
+✓ Post-commit graph update hook installed
+[✓ Tier 2: Joern CPG configured (if selected)]
+[✓ Tier 3: CodeQL configured (if selected)]
 
 Unchanged:
 - CLAUDE.md (preserved your customizations)
@@ -1004,7 +1160,7 @@ Unchanged:
 ### For New Projects:
 ```
 Created:
-✓ .claude/skills/ with 5 skill files
+✓ .claude/skills/ with [N] skill files (including code-graph)
 ✓ CLAUDE.md
 ✓ _project_specs/ structure
 ✓ scripts/verify-tooling.sh
@@ -1012,6 +1168,14 @@ Created:
 ✓ Pre-commit hooks configured
 ✓ Pre-push code review hook (blocks on Critical/High issues)
 ✓ GitHub repository: https://github.com/[owner]/[repo]
+
+Code Graph:
+✓ .mcp.json configured
+  Tier 1: codebase-memory-mcp (always on - AST graph, 64 langs)
+  [Tier 2: Joern CPG (control flow, data flow)]
+  [Tier 3: CodeQL (taint analysis, security)]
+✓ .code-graph/ added to .gitignore
+✓ Post-commit graph update hook installed
 ```
 
 ### Quick Start

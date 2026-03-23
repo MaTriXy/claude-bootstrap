@@ -4,7 +4,9 @@
 
 **The bottleneck has moved from code generation to code comprehension.** AI can generate infinite code, but humans still need to review, understand, and maintain it. Claude Bootstrap provides guardrails that keep AI-generated code simple, secure, and verifiable.
 
-**New in v2.5.0:** Every project now runs as a coordinated team of AI agents. A Team Lead orchestrates, a Quality Agent enforces TDD, a Security Agent scans for vulnerabilities, a Code Review Agent runs multi-engine reviews, a Merger Agent creates PRs, and dedicated Feature Agents implement each feature in parallel - all following an immutable pipeline: **Spec > Tests > Fail > Implement > Pass > Review > Security > PR.**
+**New in v2.7.0:** Tiered Code Graph system — every project gets a persistent knowledge graph via MCP. Claude queries the graph for sub-ms symbol lookup, dependency analysis, and blast radius instead of brute-force file reads. Opt-in CPG analysis (Joern + CodeQL) adds AST + CFG + PDG for deep data flow and security auditing.
+
+**v2.5.0:** Every project now runs as a coordinated team of AI agents. A Team Lead orchestrates, a Quality Agent enforces TDD, a Security Agent scans for vulnerabilities, a Code Review Agent runs multi-engine reviews, a Merger Agent creates PRs, and dedicated Feature Agents implement each feature in parallel - all following an immutable pipeline: **Spec > Tests > Fail > Implement > Pass > Review > Security > PR.**
 
 ## Core Philosophy
 
@@ -45,6 +47,13 @@
 │  Team Lead + Quality + Security + Review + Merger + Features   │
 │  Strict pipeline: Spec > Test > Fail > Build > Pass > PR       │
 │  Task dependencies make it impossible to skip steps.           │
+├────────────────────────────────────────────────────────────────┤
+│  CODE GRAPH BY DEFAULT                                         │
+│  ─────────────────────────────────────────────────────────────│
+│  Every project gets a persistent knowledge graph via MCP.      │
+│  Graph first, file second. Sub-ms queries, 64 languages.       │
+│  Opt-in: Joern CPG (AST+CFG+PDG) + CodeQL (taint analysis)    │
+│  ~99% fewer tokens for code navigation vs brute-force reads.   │
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,12 +81,13 @@ claude
 
 Claude will:
 1. **Validate tools** - Check gh, vercel, supabase CLIs
-2. **Ask questions** - Language, framework, AI-first?, database
+2. **Ask questions** - Language, framework, AI-first?, database, graph analysis level
 3. **Set up repository** - Create or connect GitHub repo
 4. **Create structure** - Skills, security, CI/CD, specs, todos
-5. **Ask for features** - List your key features
-6. **Spawn agent team** - Deploy Team Lead + Quality + Security + Review + Merger + Feature agents
-7. **Work begins** - Each feature runs the strict TDD pipeline in parallel
+5. **Configure code graph** - Set up MCP servers, post-commit hooks, .mcp.json
+6. **Ask for features** - List your key features
+7. **Spawn agent team** - Deploy Team Lead + Quality + Security + Review + Merger + Feature agents
+8. **Work begins** - Each feature runs the strict TDD pipeline in parallel
 
 ## Automatic Iterative Loops (Ralph Wiggum)
 
@@ -525,7 +535,7 @@ Define before you build:
 2. **Atomic todos** with validation criteria and test cases
 3. **Move, don't delete** - Completed todos go to `completed.md` for reference
 
-## Skills Included (53 Skills)
+## Skills Included (57 Skills)
 
 ### Core Skills
 | Skill | Purpose |
@@ -541,6 +551,8 @@ Define before you build:
 | `agent-teams.md` | Default agent team workflow - Team Lead, Quality, Security, Review, Merger + Feature agents |
 | `ticket-craft.md` | AI-native ticket writing - Jira/Asana/Linear tickets optimized for Claude Code execution |
 | `team-coordination.md` | Multi-person projects - shared state, todo claiming, handoffs, conflict prevention |
+| `code-graph.md` | **NEW** Persistent code graph via MCP - symbol lookup, blast radius, dependency analysis (always on) |
+| `cpg-analysis.md` | **NEW** Deep CPG analysis - Joern (AST+CFG+PDG) + CodeQL (taint analysis, security) (opt-in) |
 | `security.md` | OWASP patterns, secrets management, security testing |
 | `credentials.md` | Centralized API key management from Access.txt |
 | `session-management.md` | Context preservation, tiered summarization, resumability |

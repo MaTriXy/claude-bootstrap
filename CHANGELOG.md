@@ -6,6 +6,58 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.7.0] - 2026-03-23
+
+### Added
+
+#### Tiered Code Graph System (MCP-based)
+- **Code Graph skill** (`code-graph/SKILL.md`) - Always-on code intelligence via MCP
+  - "Graph first, file second" workflow — Claude queries the graph before reading files
+  - Integrates with codebase-memory-mcp: 14 MCP tools, 64 languages, sub-ms queries
+  - Decision tables for when to use graph vs direct file reads
+  - Workflow: LOCATE → UNDERSTAND → BLAST → TRACE → CHANGE → VERIFY
+  - Anti-patterns guide for common graph-ignoring mistakes
+
+- **CPG Analysis skill** (`cpg-analysis/SKILL.md`) - Opt-in deep code analysis
+  - Tier 2: Joern CPG via CodeBadger MCP (40+ tools, AST+CFG+CDG+DDG+PDG)
+    - Control flow graph analysis, data flow tracing, dead code detection
+    - CPGQL query examples for common analysis patterns
+    - 12 language support (Java, Python, TypeScript, Go, C/C++, etc.)
+  - Tier 3: CodeQL MCP for interprocedural taint analysis and security auditing
+    - OWASP vulnerability detection, source-to-sink data flow
+    - 10+ languages including Rust (which Joern doesn't support)
+  - Combined workflow: Tier 1 scope → Tier 2 flow → Tier 3 security
+
+- **Graph tools installer** (`scripts/install-graph-tools.sh`)
+  - Platform-detecting installer (macOS/Linux, ARM64/AMD64)
+  - `--joern` flag for Tier 2 (Docker + Python setup)
+  - `--codeql` flag for Tier 3 (CodeQL CLI + query packs)
+  - `--all` flag for all tiers
+
+- **Post-commit graph hook** (`hooks/post-commit-graph`)
+  - Lightweight (~10ms) hook that signals codebase-memory-mcp file watcher
+  - Filters to code files only, never blocks git workflow
+  - Auto-installed by `/initialize-project`
+
+- **Graph freshness check** (`hooks/workspace/check-graph-freshness.sh`)
+  - Session-start advisory warns if graph data is stale
+  - Cross-platform timestamp comparison (macOS/Linux)
+
+#### Initialize Project Updates
+- New question 4b: "Code graph analysis level?" (Standard/Deep/Security/Full)
+- New Step 4b: Automatic MCP server configuration (`.mcp.json`)
+- `.code-graph/` auto-added to `.gitignore`
+- Post-commit graph hook auto-installed
+- CLAUDE.md template now includes "Code Graph (MCP)" section
+- Summary output shows graph tier configuration
+
+### Changed
+- Total skills increased from 55 to **57 skills**
+- `install.sh` now copies `install-graph-tools.sh` to `~/.claude/`
+- `install.sh` summary output includes graph tools commands
+
+---
+
 ## [2.6.0] - 2026-02-14
 
 ### Added
