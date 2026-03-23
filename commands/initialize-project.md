@@ -550,15 +550,82 @@ Ensure this entry exists in `.gitignore`:
 .code-graph/
 ```
 
-#### Check if codebase-memory-mcp is installed
+#### Auto-install codebase-memory-mcp (if not found)
 
 ```bash
 if ! command -v codebase-memory-mcp &> /dev/null; then
     echo ""
-    echo "⚠ codebase-memory-mcp not found in PATH"
-    echo "  Install: ~/.claude/install-graph-tools.sh"
-    echo "  Or: https://github.com/DeusData/codebase-memory-mcp"
+    echo "Installing codebase-memory-mcp (Tier 1 code graph)..."
+
+    # Run the graph tools installer (Tier 1 only by default)
+    if [ -f "$HOME/.claude/install-graph-tools.sh" ]; then
+        bash "$HOME/.claude/install-graph-tools.sh"
+    else
+        # Fallback: inline install
+        INSTALL_DIR="$HOME/.local/bin"
+        mkdir -p "$INSTALL_DIR"
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        ARCH=$(uname -m)
+        case "$ARCH" in
+            aarch64|arm64) ARCH="arm64" ;;
+            x86_64|amd64) ARCH="amd64" ;;
+        esac
+        DOWNLOAD_URL="https://github.com/DeusData/codebase-memory-mcp/releases/latest/download/codebase-memory-mcp-${OS}-${ARCH}.tar.gz"
+        TEMP_DIR=$(mktemp -d)
+        if curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_DIR/codebase-memory-mcp.tar.gz"; then
+            tar xzf "$TEMP_DIR/codebase-memory-mcp.tar.gz" -C "$TEMP_DIR"
+            mv "$TEMP_DIR/codebase-memory-mcp" "$INSTALL_DIR/codebase-memory-mcp"
+            chmod +x "$INSTALL_DIR/codebase-memory-mcp"
+            echo "✓ Installed codebase-memory-mcp to $INSTALL_DIR"
+            # Auto-configure for Claude Code
+            "$INSTALL_DIR/codebase-memory-mcp" install 2>/dev/null || true
+        else
+            echo "⚠ Failed to download codebase-memory-mcp"
+            echo "  Manual install: ~/.claude/install-graph-tools.sh"
+        fi
+        rm -rf "$TEMP_DIR"
+    fi
+else
+    echo "✓ codebase-memory-mcp already installed"
+fi
+```
+
+#### Auto-install Tier 2/3 tools (if selected)
+
+```bash
+# Tier 2: Joern CPG (if deep analysis or full selected)
+if [ "$GRAPH_TIER" = "deep" ] || [ "$GRAPH_TIER" = "full" ]; then
+    if [ -f "$HOME/.claude/install-graph-tools.sh" ]; then
+        echo ""
+        echo "Installing Joern CPG (Tier 2)..."
+        bash "$HOME/.claude/install-graph-tools.sh" --joern
+    fi
+fi
+
+# Tier 3: CodeQL (if security audit or full selected)
+if [ "$GRAPH_TIER" = "security" ] || [ "$GRAPH_TIER" = "full" ]; then
+    if [ -f "$HOME/.claude/install-graph-tools.sh" ]; then
+        echo ""
+        echo "Installing CodeQL (Tier 3)..."
+        bash "$HOME/.claude/install-graph-tools.sh" --codeql
+    fi
+fi
+```
+
+#### Enable auto-indexing and build initial graph
+
+```bash
+if command -v codebase-memory-mcp &> /dev/null; then
+    # Enable auto-index so graph stays fresh across sessions
+    codebase-memory-mcp config set auto_index true 2>/dev/null || true
+
+    # Build initial graph index for this project
     echo ""
+    echo "Building code graph index (first time may take a moment)..."
+    codebase-memory-mcp index --project-dir . 2>/dev/null || {
+        echo "⚠ Initial index failed - graph will be built on first MCP query"
+    }
+    echo "✓ Code graph indexed"
 fi
 ```
 
@@ -1145,11 +1212,14 @@ Added:
 ✓ llm-patterns.md (new skill added)
 ✓ _project_specs/prompts/ (new directory)
 
-Code Graph:
+Code Graph (fully automated):
+✓ codebase-memory-mcp installed and configured
 ✓ .mcp.json configured (Tier 1: codebase-memory-mcp)
+✓ Auto-indexing enabled (graph stays fresh across sessions)
+✓ Initial graph index built
 ✓ Post-commit graph update hook installed
-[✓ Tier 2: Joern CPG configured (if selected)]
-[✓ Tier 3: CodeQL configured (if selected)]
+[✓ Tier 2: Joern CPG installed and configured (if selected)]
+[✓ Tier 3: CodeQL installed and configured (if selected)]
 
 Unchanged:
 - CLAUDE.md (preserved your customizations)
@@ -1169,11 +1239,14 @@ Created:
 ✓ Pre-push code review hook (blocks on Critical/High issues)
 ✓ GitHub repository: https://github.com/[owner]/[repo]
 
-Code Graph:
+Code Graph (fully automated):
+✓ codebase-memory-mcp installed
 ✓ .mcp.json configured
   Tier 1: codebase-memory-mcp (always on - AST graph, 64 langs)
   [Tier 2: Joern CPG (control flow, data flow)]
   [Tier 3: CodeQL (taint analysis, security)]
+✓ Auto-indexing enabled
+✓ Initial graph index built ([N] files, [N] symbols)
 ✓ .code-graph/ added to .gitignore
 ✓ Post-commit graph update hook installed
 ```
