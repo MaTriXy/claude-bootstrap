@@ -6,6 +6,105 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.0.0] - 2026-03-31
+
+### Breaking Changes
+
+This release aligns Claude Bootstrap with how Claude Code actually works internally. Several features that referenced non-existent infrastructure have been replaced with real Claude Code mechanisms.
+
+- **Ralph Wiggum plugin removed** — The `/ralph-loop` command, `claude-plugins-official` marketplace, and plugin stop-hook mechanism never existed in Claude Code. All references removed.
+- **TDD loops now use real Stop hooks** — Claude Code's Stop hook (exit code 2 feeds stderr back to the model) replaces the fake plugin. `scripts/tdd-loop-check.sh` runs tests/lint/typecheck after each response.
+- **`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` removed** — Agent spawning and task management are standard Claude Code features, not gated behind an env var. All references removed.
+- **CLAUDE.md template uses `@include` directives** — Skills are loaded via `@.claude/skills/base/SKILL.md` syntax which Claude Code resolves at parse time (recursive, max depth 5, cycle detection).
+- **Quality gates moved from CLAUDE.md to `.claude/rules/`** — Rules use YAML frontmatter with `paths:` globs for conditional activation.
+- **"STRICTLY ENFORCED" / "Non-Negotiable" language removed** — Claude Code treats CLAUDE.md as user-level context (not system prompt) wrapped in `<system-reminder>` tags with "may or may not be relevant" caveat. Aggressive language wastes tokens without creating binding constraints.
+
+### Added
+
+#### Stop Hook TDD Loops
+- **`templates/tdd-loop-check.sh`** — Universal TDD loop script for Stop hooks
+  - Runs tests, lint, typecheck after each Claude response
+  - Exit 0 (all pass) = Claude stops; Exit 2 (failures) = stderr fed back to Claude
+  - Iteration counter with configurable max (default 25)
+  - Detects project type (Node.js/Python) and runs appropriate commands
+  - Distinguishes code errors (loop) from environment errors (stop)
+
+- **`templates/settings.json`** — Pre-configured Claude Code settings
+  - Stop hook configuration for TDD loops
+  - SessionStart hook for auto-context injection
+  - Permission allow rules: test runners, linters, git read commands, gh CLI
+  - Permission deny rules: `rm -rf`, `git push --force`, writing `.env` files
+  - Ready to copy into any project's `.claude/settings.json`
+
+#### Conditional Rules System
+- **`.claude/rules/` directory** with 7 rule files using proper YAML frontmatter:
+  - `quality-gates.md` — Always active: 20 lines/function, 200 lines/file, 3 params, 80% coverage
+  - `tdd-workflow.md` — Always active: RED-GREEN-VALIDATE workflow
+  - `security.md` — Always active: no secrets in code, parameterized queries, bcrypt
+  - `react.md` — Active on `**/*.tsx`, `**/*.jsx`, `src/components/**`
+  - `typescript.md` — Active on `**/*.ts`, `**/*.tsx`
+  - `python.md` — Active on `**/*.py`
+  - `nodejs-backend.md` — Active on `src/api/**`, `src/routes/**`, `server/**`
+
+#### CLAUDE.local.md
+- **`templates/CLAUDE.local.md`** — Private developer override template
+  - Not checked into git (higher priority than project CLAUDE.md)
+  - Template with common overrides: preferences, local environment, quality gate tweaks
+
+#### Agent Definition Frontmatter
+- All 6 agent definitions now use proper Claude Code frontmatter:
+  - `name` — Agent identifier
+  - `description` — When-to-use hint
+  - `model` — Model selection (sonnet, inherit)
+  - `tools` — Tool allowlist (e.g., `[Read, Glob, Grep, TaskCreate]`)
+  - `disallowedTools` — Tool denylist (e.g., `[Write, Edit, Bash]`)
+  - `maxTurns` — Maximum agentic turns before stopping
+  - `effort` — Thinking depth (medium/high)
+
+#### @include Directives in CLAUDE.md
+- CLAUDE.md template now uses `@.claude/skills/base/SKILL.md` syntax
+- Claude Code resolves these at load time (recursively inlined)
+- Skills actually become part of the prompt instead of decorative text
+
+### Changed
+- `install.sh` now copies rules/, templates/, and no longer checks for Ralph Wiggum plugin
+- `iterative-development/SKILL.md` completely rewritten for Stop hooks
+- `base/SKILL.md` — Ralph Wiggum auto-invoke section replaced with Stop hook explanation
+- `agent-teams/SKILL.md` — Removed experimental env var requirement
+- `commands/spawn-team.md` — Removed env var check, removed Shift+Up/Down and Ctrl+T UI references
+- All agent definitions in `skills/agent-teams/agents/` rewritten with frontmatter
+- Total files: 57 skills + 7 conditional rules + 3 templates
+
+### Removed
+- All Ralph Wiggum plugin references (`/ralph-loop`, `/plugin install`, `--completion-promise`, `<promise>` tags)
+- `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` env var requirement
+- Plugin marketplace references (`claude-plugins-official`)
+- `Shift+Up/Down` and `Ctrl+T` UI interaction assumptions
+- "STRICTLY ENFORCED" and "Non-Negotiable" language throughout
+
+### Migration
+
+```bash
+cd "$(cat ~/.claude/.bootstrap-dir)"
+git pull
+./install.sh
+
+# Then in each project:
+claude
+> /initialize-project
+# Will update to v3.0.0 structure
+```
+
+**Manual steps for existing projects:**
+1. Copy `templates/settings.json` to `.claude/settings.json`
+2. Copy `templates/tdd-loop-check.sh` to `scripts/tdd-loop-check.sh` and `chmod +x`
+3. Replace skill listings in CLAUDE.md with `@include` directives
+4. Copy `rules/` files to `.claude/rules/`
+5. Add `CLAUDE.local.md` to `.gitignore`
+6. Remove `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` from environment
+
+---
+
 ## [2.7.0] - 2026-03-23
 
 ### Added

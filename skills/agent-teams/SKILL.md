@@ -1,6 +1,7 @@
 ---
 name: agent-teams
 description: Claude Code Agent Teams - default team-based development with strict TDD pipeline enforcement
+user-invocable: false
 ---
 
 # Agent Teams Skill
@@ -9,7 +10,7 @@ description: Claude Code Agent Teams - default team-based development with stric
 
 **Purpose:** Every project initialized with claude-bootstrap runs as a coordinated team of AI agents. This is the default workflow, not optional. Teams enforce a strict TDD pipeline where no step can be skipped.
 
-**Requires:** `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` environment variable.
+**Setup:** Agent definitions go in `.claude/agents/` with proper frontmatter (name, description, model, tools, disallowedTools, maxTurns, effort). See agent files for the format.
 
 ---
 
@@ -370,7 +371,7 @@ The Merger Agent:
 // settings.json or environment
 {
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "agent teams (via .claude/agents/ definitions)": "1"
   }
 }
 ```

@@ -1,6 +1,7 @@
 ---
 name: base
 description: Universal coding patterns, constraints, TDD workflow, atomic todos
+user-invocable: false
 ---
 
 # Base Skill - Universal Patterns
@@ -11,9 +12,9 @@ Complexity is the enemy. Every line of code is a liability. The goal is software
 
 ---
 
-## Simplicity Rules (STRICTLY ENFORCED)
+## Simplicity Rules
 
-**CRITICAL: These limits are non-negotiable. Claude MUST check and enforce these limits for EVERY file created or modified.**
+These limits apply to every file created or modified.
 
 ### Function Level
 - **Maximum 20 lines per function** - if longer, decompose IMMEDIATELY
@@ -390,8 +391,7 @@ Validate email format on the signup form before submission. Show inline error if
 
 ---
 
-## Credentials Management (Non-Negotiable)
-
+## Credentials Management 
 When a project needs API keys, always ask the user for their centralized access file first.
 
 ### Workflow
@@ -416,8 +416,7 @@ See `credentials.md` for full parsing logic and validation commands.
 
 ---
 
-## Security (Non-Negotiable)
-
+## Security 
 Every project must meet these security requirements. See `security.md` skill for detailed patterns.
 
 ### Essential Security Checks
@@ -442,8 +441,7 @@ Every PR must pass:
 
 ---
 
-## Quality Gates (Non-Negotiable)
-
+## Quality Gates 
 ### Coverage Threshold
 - **Minimum 80% code coverage** - CI must fail below this
 - Business logic (core/) should aim for 100%
@@ -459,8 +457,7 @@ This catches issues before they hit CI, saving time and keeping the main branch 
 
 ---
 
-## Session Management (Non-Negotiable)
-
+## Session Management 
 Maintain context for resumability. See `session-management.md` for full details.
 
 ### Core Rule: Checkpoint at Natural Breakpoints
@@ -501,83 +498,26 @@ When you notice code violating these rules, **stop and refactor** before continu
 
 ---
 
-## Automatic Iterative Mode (Ralph Wiggum)
+## Automatic TDD Loops (via Stop Hook)
 
-**For any non-trivial task, Claude MUST automatically use iterative TDD loops.**
+The Stop hook in `.claude/settings.json` runs tests after each response. If tests fail, the failure output is fed back to Claude automatically. No manual intervention needed.
 
-### When to Auto-Invoke Ralph Loop
+See the `iterative-development` skill for setup details.
 
-| Task Type | Action |
-|-----------|--------|
-| New feature (any size) | `/ralph-loop` with TDD template |
-| Bug fix | `/ralph-loop` with bug fix template |
-| Refactoring | `/ralph-loop` with refactor template |
-| API development | `/ralph-loop` with API template |
-| Simple question/explanation | Normal response (no loop) |
-| One-line fix (typo, etc.) | Normal response (no loop) |
+### How It Works
 
-### Auto-Transform User Requests
+1. You ask Claude to implement something
+2. Claude writes tests + implementation
+3. Stop hook runs tests automatically
+4. If failures: output fed back to Claude, it fixes and tries again
+5. If all pass: Claude stops, work is done
 
-When user says something like:
-- "Add email validation"
-- "Fix the login bug"
-- "Build a REST API for todos"
-- "Refactor the auth module"
+### When It Activates
 
-Claude MUST automatically:
-
-1. **Extract requirements** from the request
-2. **Define completion criteria** (tests passing, lint clean, etc.)
-3. **Structure as Ralph prompt** with TDD workflow
-4. **Invoke** `/ralph-loop` with appropriate `--max-iterations` and `--completion-promise`
-
-### Auto-Transformation Example
-
-**User says:**
-> "Add a forgot password feature"
-
-**Claude automatically invokes:**
-```bash
-/ralph-loop "
-## Task: Add forgot password feature
-
-### Requirements (extracted from user request)
-- User can request password reset via email
-- Reset link sent to registered email
-- Link expires after 24 hours
-- User can set new password via link
-
-### TDD Workflow
-1. Write failing tests for each requirement
-2. Verify tests FAIL (RED)
-3. Implement feature
-4. Verify tests PASS (GREEN)
-5. Run lint + typecheck
-6. Repeat if failures
-
-### Completion Criteria
-- [ ] All tests passing
-- [ ] Coverage >= 80%
-- [ ] Lint clean
-- [ ] Security review (no token in URL params, etc.)
-
-### Exit Condition
-<promise>FORGOT PASSWORD COMPLETE</promise>
-" --completion-promise "FORGOT PASSWORD COMPLETE" --max-iterations 25
-```
-
-### Default Settings
-
-| Setting | Default | Rationale |
-|---------|---------|-----------|
-| `--max-iterations` | 20-30 | Safety net, adjust by complexity |
-| `--completion-promise` | Always set | Based on task (e.g., "TESTS PASSING") |
-| TDD workflow | Always included | Non-negotiable |
-
-### Opt-Out
-
-User can opt out of automatic Ralph loops by saying:
-- "Just explain..." (explanation only)
-- "Quick fix for..." (one-liner)
-- "Don't loop..." (explicit opt-out)
-- "Help me understand..." (learning/discussion)
+| Task Type | TDD Loop? |
+|-----------|-----------|
+| New feature | Yes - tests run after each response |
+| Bug fix | Yes - write failing test first |
+| Refactoring | Yes - existing tests catch regressions |
+| Simple question/explanation | No - no code changes |
+| One-line fix | No - trivial change |
