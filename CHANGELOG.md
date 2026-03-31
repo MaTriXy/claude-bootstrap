@@ -73,6 +73,18 @@ This release aligns Claude Bootstrap with how Claude Code actually works interna
 - Added **Don't** section — short guardrails (no .env writes, no secret leaks)
 - Removed Session Persistence section (belongs in skills, not root template)
 
+#### PreCompact Hook for Smarter Compaction
+- **`templates/pre-compact.sh`** — PreCompact hook that injects project-specific preservation priorities into the compaction summarizer
+  - Auto-detects project type (TypeScript, Python, Next.js, FastAPI, Flutter, etc.)
+  - Finds schema files (Drizzle, Prisma, SQLAlchemy) and tells summarizer to preserve all schema discussion verbatim
+  - Finds API directories and tells summarizer to preserve exact endpoint paths, request/response shapes
+  - Extracts Key Decisions from CLAUDE.md and tells summarizer to reference them by name
+  - Injects live git state (branch, uncommitted changes, staged files) into summary priorities
+  - Tells summarizer to preserve exact error messages and fix context (not paraphrased)
+  - Tells summarizer what NOT to preserve (dead ends, full file contents, formatting noise)
+  - Zero overhead during normal usage — only runs when compaction fires
+  - Configured in `.claude/settings.json` under `hooks.PreCompact`
+
 #### Full Skill Frontmatter (all 57 skills)
 - Added undocumented-but-functional Claude Code skill frontmatter to all 57 skills:
   - `when-to-use` — guidance for when Claude should invoke the skill

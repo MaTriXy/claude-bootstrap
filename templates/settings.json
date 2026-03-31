@@ -33,6 +33,18 @@
     ]
   },
   "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/pre-compact.sh",
+            "timeout": 5,
+            "statusMessage": "Injecting project-specific compaction priorities..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

@@ -65,7 +65,9 @@ echo ""
 echo "Installing templates..."
 mkdir -p "$CLAUDE_DIR/templates"
 cp "$SCRIPT_DIR/templates/"* "$CLAUDE_DIR/templates/" 2>/dev/null || true
-echo "✓ Installed templates (CLAUDE.md, CLAUDE.local.md, settings.json, tdd-loop-check.sh)"
+chmod +x "$CLAUDE_DIR/templates/tdd-loop-check.sh" 2>/dev/null || true
+chmod +x "$CLAUDE_DIR/templates/pre-compact.sh" 2>/dev/null || true
+echo "✓ Installed templates (CLAUDE.md, CLAUDE.local.md, settings.json, tdd-loop-check.sh, pre-compact.sh)"
 
 # Copy hook installer script
 cp "$SCRIPT_DIR/scripts/install-hooks.sh" "$CLAUDE_DIR/" 2>/dev/null || true

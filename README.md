@@ -150,6 +150,34 @@ Use type hints, pytest, ruff...
 | `python.md` | Editing .py files |
 | `nodejs-backend.md` | Editing api/routes/server files |
 
+## Smarter Compaction (PreCompact Hook)
+
+Claude Code's built-in compaction fires at ~83% context and summarizes everything into 20K tokens using a generic 9-section template. It doesn't know what YOUR project cares about.
+
+The PreCompact hook fixes this by injecting **project-specific preservation priorities** into the summarizer:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Built-in compaction:                                       │
+│  "Summarize this conversation" → generic summary            │
+├─────────────────────────────────────────────────────────────┤
+│  With PreCompact hook:                                      │
+│  "Summarize, but preserve ALL schema decisions verbatim,    │
+│   keep exact error messages, keep API contract details,     │
+│   reference these Key Decisions by name, and here's the     │
+│   current git state to include" → project-aware summary     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+The hook auto-detects:
+- **Project type** (TypeScript/Next.js, Python/FastAPI, Flutter, etc.)
+- **Schema files** (Drizzle, Prisma, SQLAlchemy) → tells summarizer to preserve schema discussion
+- **API directories** → tells summarizer to preserve endpoint paths and contracts
+- **Key Decisions from CLAUDE.md** → tells summarizer to reference them by name
+- **Git state** → injects branch, uncommitted changes, staged files
+
+Zero overhead during normal usage. Only runs when compaction actually fires.
+
 ## Pre-configured Permissions
 
 `.claude/settings.json` includes permission rules so users don't get pestered for routine operations:
@@ -254,7 +282,8 @@ your-project/
 │   │   └── [framework]/SKILL.md
 │   └── settings.json         # Permissions + Stop hooks
 ├── scripts/
-│   └── tdd-loop-check.sh     # Stop hook script for TDD loops
+│   ├── tdd-loop-check.sh     # Stop hook script for TDD loops
+│   └── pre-compact.sh        # PreCompact hook for smarter compaction
 ├── .github/workflows/
 │   ├── quality.yml
 │   └── security.yml
@@ -409,6 +438,7 @@ brew install supabase/tap/supabase && supabase login
 | **Permissions** | Manual approval for everything | Pre-configured allow/deny in settings.json |
 | **Developer Overrides** | None | `CLAUDE.local.md` (gitignored, higher priority) |
 | **Framework Rules** | Always loaded (57 skills = token waste) | Conditional rules activate by file path |
+| **Compaction** | Generic summarization | PreCompact hook injects project-specific priorities |
 | **Enforcement** | "STRICTLY ENFORCED" prose | Real hooks that run code |
 
 ## Contributing
