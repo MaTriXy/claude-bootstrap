@@ -1,6 +1,10 @@
 ---
 name: code-review
 description: Mandatory code reviews via /code-review before commits and deploys
+when-to-use: When user asks to review code, before commits, or when /code-review is invoked
+user-invocable: true
+allowed-tools: [Read, Glob, Grep, Bash]
+effort: high
 ---
 
 # Code Review Skill

@@ -1,6 +1,10 @@
 ---
 name: ui-testing
 description: Visual testing - catch invisible buttons, broken layouts, contrast
+when-to-use: When writing visual or accessibility tests for UI components
+user-invocable: false
+paths: ["**/*.test.tsx", "**/*.spec.tsx", "**/*.stories.*"]
+effort: medium
 ---
 
 # UI Verification Skill

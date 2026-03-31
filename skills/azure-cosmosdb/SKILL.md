@@ -1,16 +1,10 @@
 ---
 name: azure-cosmosdb
 description: Azure Cosmos DB partition keys, consistency levels, change feed, SDK patterns
----
-
-# Azure Cosmos DB Skill
-
-*Load with: base.md + [typescript.md | python.md]*
-
-Azure Cosmos DB is a globally distributed, multi-model database with guaranteed low latency, elastic scalability, and multiple consistency models.
-
-**Sources:** [Cosmos DB Docs](https://learn.microsoft.com/en-us/azure/cosmos-db/) | [Partitioning](https://learn.microsoft.com/en-us/azure/cosmos-db/partitioning-overview) | [SDK](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/sdk-nodejs)
-
+when-to-use: When working with Azure Cosmos DB
+user-invocable: false
+paths: ["**/cosmos*", "**/azure*"]
+effort: medium
 ---
 
 ## Core Principle

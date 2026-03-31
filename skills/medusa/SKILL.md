@@ -1,6 +1,9 @@
 ---
 name: medusa
 description: Medusa headless commerce - modules, workflows, API routes, admin UI
+when-to-use: When building with Medusa commerce platform
+user-invocable: false
+effort: medium
 ---
 
 # Medusa E-Commerce Skill

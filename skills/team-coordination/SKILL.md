@@ -1,6 +1,9 @@
 ---
 name: team-coordination
 description: Multi-person projects - shared state, todo claiming, handoffs
+when-to-use: When multiple developers are working on the same repo
+user-invocable: false
+effort: low
 ---
 
 # Team Coordination Skill

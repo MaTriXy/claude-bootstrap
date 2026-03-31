@@ -1,6 +1,9 @@
 ---
 name: llm-patterns
 description: AI-first application patterns, LLM testing, prompt management
+when-to-use: When building apps where LLMs handle core logic - classification, extraction, generation
+user-invocable: false
+effort: medium
 ---
 
 # LLM Patterns Skill

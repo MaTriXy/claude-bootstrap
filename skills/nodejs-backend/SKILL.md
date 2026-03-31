@@ -1,6 +1,10 @@
 ---
 name: nodejs-backend
 description: Node.js backend patterns with Express/Fastify, repositories
+when-to-use: When working on Node.js backend code - API routes, middleware, server setup
+user-invocable: false
+paths: ["src/api/**", "src/routes/**", "src/server/**", "src/middleware/**", "server/**", "api/**"]
+effort: medium
 ---
 
 # Node.js Backend Skill

@@ -1,6 +1,10 @@
 ---
 name: ui-mobile
 description: Mobile UI patterns - React Native, iOS/Android, touch targets
+when-to-use: When building mobile UI components
+user-invocable: false
+paths: ["**/*.tsx", "**/*.jsx", "ios/**", "android/**", "**/*.dart"]
+effort: medium
 ---
 
 # Mobile UI Design Skill (React Native)

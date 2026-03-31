@@ -1,6 +1,9 @@
 ---
 name: project-tooling
 description: gh, vercel, supabase, render CLI and deployment platform setup
+when-to-use: When setting up deployment, CI/CD, or when CLI tools are needed
+user-invocable: false
+effort: low
 ---
 
 # Project Tooling Skill

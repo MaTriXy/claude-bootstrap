@@ -1,6 +1,9 @@
 ---
 name: cpg-analysis
 description: Deep code property graph analysis with Joern CPG (AST+CFG+PDG) and CodeQL for control flow, data flow, taint analysis, and security auditing
+when-to-use: "When deep code analysis is needed — control flow, data flow, taint tracking, or security auditing"
+user-invocable: true
+effort: high
 ---
 
 # CPG Analysis Skill

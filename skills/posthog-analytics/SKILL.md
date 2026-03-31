@@ -1,6 +1,9 @@
 ---
 name: posthog-analytics
 description: PostHog analytics, event tracking, feature flags, dashboards
+when-to-use: When adding analytics, feature flags, or event tracking with PostHog
+user-invocable: false
+effort: medium
 ---
 
 # PostHog Analytics Skill

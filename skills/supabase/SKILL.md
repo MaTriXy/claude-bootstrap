@@ -1,6 +1,10 @@
 ---
 name: supabase
 description: Core Supabase CLI, migrations, RLS, Edge Functions
+when-to-use: When working with Supabase - database, auth, storage, or edge functions
+user-invocable: false
+paths: ["supabase/**", "**/supabase.*", "**/.env*"]
+effort: medium
 ---
 
 # Supabase Core Skill

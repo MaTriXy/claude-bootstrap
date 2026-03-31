@@ -1,6 +1,10 @@
 ---
 name: typescript
 description: TypeScript strict mode with eslint and jest
+when-to-use: When working on TypeScript files
+user-invocable: false
+paths: ["**/*.ts", "**/*.tsx", "tsconfig*.json"]
+effort: medium
 ---
 
 # TypeScript Skill

@@ -1,6 +1,9 @@
 ---
 name: reddit-ads
 description: Reddit Ads API - campaigns, targeting, conversions, agentic optimization
+when-to-use: When building Reddit ad campaign management or optimization tools
+user-invocable: false
+effort: medium
 ---
 
 # Reddit Ads API Skill

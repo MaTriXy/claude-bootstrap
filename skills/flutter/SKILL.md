@@ -1,6 +1,10 @@
 ---
 name: flutter
 description: Flutter development with Riverpod state management, Freezed, go_router, and mocktail testing
+when-to-use: When working on Flutter/Dart code
+user-invocable: false
+paths: ["**/*.dart", "pubspec.yaml", "lib/**", "test/**"]
+effort: medium
 ---
 
 # Flutter Skill

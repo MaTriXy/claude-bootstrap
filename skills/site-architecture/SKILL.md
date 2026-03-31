@@ -1,6 +1,10 @@
 ---
 name: site-architecture
 description: Technical SEO - robots.txt, sitemap, meta tags, Core Web Vitals
+when-to-use: When setting up site architecture, meta tags, or technical SEO
+user-invocable: false
+paths: ["**/robots.txt", "**/sitemap*", "**/*.html", "public/**"]
+effort: medium
 ---
 
 # Site Architecture Skill

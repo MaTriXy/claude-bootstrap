@@ -1,6 +1,9 @@
 ---
 name: shopify-apps
 description: Shopify app development - Remix, Admin API, checkout extensions
+when-to-use: When building Shopify apps or extensions
+user-invocable: false
+effort: medium
 ---
 
 # Shopify App Development Skill

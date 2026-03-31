@@ -1,6 +1,9 @@
 ---
 name: woocommerce
 description: WooCommerce REST API - products, orders, customers, webhooks
+when-to-use: When integrating with WooCommerce stores
+user-invocable: false
+effort: medium
 ---
 
 # WooCommerce Development Skill

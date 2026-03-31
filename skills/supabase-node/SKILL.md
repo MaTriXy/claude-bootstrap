@@ -1,6 +1,10 @@
 ---
 name: supabase-node
 description: Express/Hono with Supabase and Drizzle ORM
+when-to-use: When building a Node.js backend with Supabase
+user-invocable: false
+paths: ["src/api/**", "src/routes/**", "supabase/**"]
+effort: medium
 ---
 
 # Supabase + Node.js Skill

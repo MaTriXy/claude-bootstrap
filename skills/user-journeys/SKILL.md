@@ -1,6 +1,9 @@
 ---
 name: user-journeys
 description: User experience flows - journey mapping, UX validation, error recovery
+when-to-use: When mapping user flows, validating UX, or designing error recovery
+user-invocable: false
+effort: medium
 ---
 
 # User Journeys Skill

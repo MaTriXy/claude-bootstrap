@@ -1,6 +1,9 @@
 ---
 name: ai-models
 description: Latest AI models reference - Claude, OpenAI, Gemini, Eleven Labs, Replicate
+when-to-use: When choosing models, comparing capabilities, or referencing model specs
+user-invocable: true
+effort: low
 ---
 
 # AI Models Reference Skill

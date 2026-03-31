@@ -1,6 +1,9 @@
 ---
 name: commit-hygiene
 description: Atomic commits, PR size limits, commit thresholds, stacked PRs
+when-to-use: When committing code, creating PRs, or when change set is growing large
+user-invocable: false
+effort: low
 ---
 
 # Commit Hygiene Skill

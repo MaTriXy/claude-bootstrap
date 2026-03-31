@@ -1,6 +1,10 @@
 ---
 name: python
 description: Python development with ruff, mypy, pytest - TDD and type safety
+when-to-use: When working on Python files
+user-invocable: false
+paths: ["**/*.py", "pyproject.toml", "setup.py", "requirements*.txt"]
+effort: medium
 ---
 
 # Python Skill

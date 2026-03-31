@@ -1,6 +1,9 @@
 ---
 name: session-management
 description: Context preservation, tiered summarization, resumability
+when-to-use: At session checkpoints, after completing major tasks, or when resuming work
+user-invocable: false
+effort: low
 ---
 
 # Session Management Skill

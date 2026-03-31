@@ -1,6 +1,9 @@
 ---
 name: codex-review
 description: OpenAI Codex CLI code review with GPT-5.2-Codex, CI/CD integration
+when-to-use: When user requests Codex-powered code review or multi-engine review
+user-invocable: true
+effort: medium
 ---
 
 # OpenAI Codex Code Review Skill

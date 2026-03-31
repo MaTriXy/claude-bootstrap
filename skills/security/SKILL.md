@@ -1,6 +1,10 @@
 ---
 name: security
 description: OWASP security patterns, secrets management, security testing
+when-to-use: When writing code that handles auth, user input, API keys, or when security review is requested
+user-invocable: true
+allowed-tools: [Read, Glob, Grep, Bash]
+effort: high
 ---
 
 # Security Skill

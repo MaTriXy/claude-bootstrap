@@ -1,6 +1,10 @@
 ---
 name: database-schema
 description: Schema awareness - read before coding, type generation, prevent column errors
+when-to-use: Before writing any database queries or modifying data models
+user-invocable: false
+paths: ["**/schema.*", "**/migrations/**", "**/models/**", "**/*.prisma", "**/drizzle/**"]
+effort: medium
 ---
 
 # Database Schema Awareness Skill

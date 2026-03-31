@@ -1,6 +1,10 @@
 ---
 name: firebase
 description: Firebase Firestore, Auth, Storage, real-time listeners, security rules
+when-to-use: When working with Firebase services
+user-invocable: false
+paths: ["**/firebase*", "firestore.rules", "storage.rules", "firebase.json"]
+effort: medium
 ---
 
 # Firebase Skill

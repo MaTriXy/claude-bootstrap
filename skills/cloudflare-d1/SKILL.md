@@ -1,6 +1,10 @@
 ---
 name: cloudflare-d1
 description: Cloudflare D1 SQLite database with Workers, Drizzle ORM, migrations
+when-to-use: When working with Cloudflare D1 or Workers
+user-invocable: false
+paths: ["wrangler.toml", "src/worker*", "**/d1/**"]
+effort: medium
 ---
 
 # Cloudflare D1 Skill

@@ -1,6 +1,9 @@
 ---
 name: web-payments
 description: Stripe Checkout, subscriptions, webhooks, customer portal
+when-to-use: When implementing payments, subscriptions, or Stripe integration
+user-invocable: false
+effort: high
 ---
 
 # Web Payments Skill (Stripe)

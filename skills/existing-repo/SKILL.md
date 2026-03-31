@@ -1,6 +1,10 @@
 ---
 name: existing-repo
 description: Analyze existing repositories, maintain structure, setup guardrails and best practices
+when-to-use: When working with an existing codebase for the first time or adding guardrails
+user-invocable: true
+allowed-tools: [Read, Glob, Grep, Bash]
+effort: high
 ---
 
 # Existing Repository Skill

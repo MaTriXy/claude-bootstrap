@@ -1,6 +1,10 @@
 ---
 name: aws-dynamodb
 description: AWS DynamoDB single-table design, GSI patterns, SDK v3 TypeScript/Python
+when-to-use: When working with DynamoDB tables or AWS SDK data operations
+user-invocable: false
+paths: ["**/dynamodb*", "**/dynamo*", "serverless.*", "template.yaml"]
+effort: medium
 ---
 
 # AWS DynamoDB Skill

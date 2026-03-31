@@ -1,6 +1,10 @@
 ---
 name: aws-aurora
 description: AWS Aurora Serverless v2, RDS Proxy, Data API, connection pooling
+when-to-use: When working with AWS Aurora/RDS databases
+user-invocable: false
+paths: ["**/rds*", "**/aurora*", "serverless.*", "template.yaml"]
+effort: medium
 ---
 
 # AWS Aurora Skill

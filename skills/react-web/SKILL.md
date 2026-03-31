@@ -1,6 +1,10 @@
 ---
 name: react-web
 description: React web development with hooks, React Query, Zustand
+when-to-use: When working on React web components or pages
+user-invocable: false
+paths: ["**/*.tsx", "**/*.jsx", "src/components/**", "src/pages/**", "src/app/**"]
+effort: medium
 ---
 
 # React Web Skill

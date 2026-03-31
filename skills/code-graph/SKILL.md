@@ -1,6 +1,9 @@
 ---
 name: code-graph
 description: AST-based code graph for fast symbol lookup, dependency analysis, and blast radius via codebase-memory-mcp MCP server
+when-to-use: "Before reading files — query the graph first for symbol lookup, call tracing, and blast radius"
+user-invocable: false
+effort: medium
 ---
 
 # Code Graph Skill

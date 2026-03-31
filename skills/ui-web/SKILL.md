@@ -1,6 +1,10 @@
 ---
 name: ui-web
 description: Web UI - glassmorphism, Tailwind, dark mode, accessibility
+when-to-use: When building or styling web UI components
+user-invocable: false
+paths: ["**/*.tsx", "**/*.jsx", "**/*.css", "**/*.scss", "tailwind.config.*"]
+effort: medium
 ---
 
 # UI Design Skill (Web)

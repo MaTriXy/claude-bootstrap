@@ -1,7 +1,9 @@
 ---
 name: base
 description: Universal coding patterns, constraints, TDD workflow, atomic todos
+when-to-use: Always loaded as foundation for all projects - TDD workflow, simplicity rules, atomic todos
 user-invocable: false
+effort: medium
 ---
 
 # Base Skill - Universal Patterns

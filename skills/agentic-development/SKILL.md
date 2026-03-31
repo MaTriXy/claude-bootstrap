@@ -1,6 +1,9 @@
 ---
 name: agentic-development
 description: Build AI agents with Pydantic AI (Python) and Claude SDK (Node.js)
+when-to-use: When building AI agents, tool-using LLM systems, or agentic workflows
+user-invocable: false
+effort: high
 ---
 
 # Agentic Development Skill

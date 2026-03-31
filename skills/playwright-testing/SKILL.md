@@ -1,6 +1,10 @@
 ---
 name: playwright-testing
 description: E2E testing with Playwright - Page Objects, cross-browser, CI/CD
+when-to-use: When writing or debugging E2E tests with Playwright
+user-invocable: true
+paths: ["**/e2e/**", "**/*.spec.ts", "**/playwright/**", "playwright.config.*"]
+effort: medium
 ---
 
 # Playwright E2E Testing Skill

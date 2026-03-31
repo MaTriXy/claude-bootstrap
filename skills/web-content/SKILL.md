@@ -1,6 +1,9 @@
 ---
 name: web-content
 description: SEO and AI discovery (GEO) - schema, ChatGPT/Perplexity optimization
+when-to-use: When creating web content that needs SEO and AI discoverability
+user-invocable: false
+effort: medium
 ---
 
 # Web Content Skill

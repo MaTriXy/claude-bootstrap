@@ -1,6 +1,9 @@
 ---
 name: ticket-craft
 description: Create Jira/Asana/Linear tickets optimized for Claude Code execution - AI-native ticket writing
+when-to-use: When creating tickets, breaking down epics, or writing specs for AI agent execution
+user-invocable: true
+effort: medium
 ---
 
 # Ticket Craft Skill

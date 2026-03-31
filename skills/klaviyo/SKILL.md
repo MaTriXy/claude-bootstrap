@@ -1,6 +1,9 @@
 ---
 name: klaviyo
 description: Klaviyo email/SMS marketing - profiles, events, flows, segmentation
+when-to-use: When integrating Klaviyo for email/SMS marketing
+user-invocable: false
+effort: medium
 ---
 
 # Klaviyo E-Commerce Marketing Skill

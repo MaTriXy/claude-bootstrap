@@ -1,6 +1,9 @@
 ---
 name: reddit-api
 description: Reddit API with PRAW (Python) and Snoowrap (Node.js)
+when-to-use: When building Reddit integrations or bots
+user-invocable: false
+effort: medium
 ---
 
 # Reddit API Skill

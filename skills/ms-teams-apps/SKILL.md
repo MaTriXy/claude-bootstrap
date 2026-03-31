@@ -1,6 +1,9 @@
 ---
 name: ms-teams-apps
 description: Microsoft Teams bots and AI agents - Claude/OpenAI, Adaptive Cards, Graph API
+when-to-use: When building Microsoft Teams bots, tabs, or message extensions
+user-invocable: false
+effort: medium
 ---
 
 # Microsoft Teams Apps Skill

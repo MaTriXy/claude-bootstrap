@@ -1,6 +1,10 @@
 ---
 name: android-java
 description: Android Java development with MVVM, ViewBinding, and Espresso testing
+when-to-use: When working on Android Java source files
+user-invocable: false
+paths: ["**/*.java", "android/**", "**/build.gradle"]
+effort: medium
 ---
 
 # Android Java Skill

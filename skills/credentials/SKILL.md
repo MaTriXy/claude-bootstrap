@@ -1,6 +1,9 @@
 ---
 name: credentials
 description: Centralized API key management from Access.txt
+when-to-use: When setting up a new project that needs API keys or environment variables
+user-invocable: false
+effort: low
 ---
 
 # Credentials Management Skill

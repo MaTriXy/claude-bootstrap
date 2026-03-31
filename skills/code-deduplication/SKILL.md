@@ -1,6 +1,9 @@
 ---
 name: code-deduplication
 description: Prevent semantic code duplication with capability index and check-before-write
+when-to-use: Before creating new utility functions or shared code
+user-invocable: false
+effort: medium
 ---
 
 # Code Deduplication Skill

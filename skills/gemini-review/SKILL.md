@@ -1,6 +1,9 @@
 ---
 name: gemini-review
 description: Google Gemini CLI code review with Gemini 2.5 Pro, 1M token context, CI/CD integration
+when-to-use: When user requests Gemini-powered code review or needs large-context review
+user-invocable: true
+effort: medium
 ---
 
 # Google Gemini Code Review Skill

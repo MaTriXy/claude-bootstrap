@@ -1,7 +1,9 @@
 ---
 name: iterative-development
 description: TDD iteration loops using Claude Code Stop hooks - runs tests after each response, feeds failures back automatically
+when-to-use: When setting up or configuring TDD loops via Stop hooks
 user-invocable: false
+effort: medium
 ---
 
 # Iterative Development Skill (Stop Hook TDD Loops)

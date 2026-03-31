@@ -1,6 +1,10 @@
 ---
 name: supabase-nextjs
 description: Next.js with Supabase and Drizzle ORM
+when-to-use: When building a Next.js app with Supabase backend
+user-invocable: false
+paths: ["src/app/**", "src/db/**", "supabase/**"]
+effort: medium
 ---
 
 # Supabase + Next.js Skill

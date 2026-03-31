@@ -1,6 +1,9 @@
 ---
 name: aeo-optimization
 description: AI Engine Optimization - semantic triples, page templates, content clusters for AI citations
+when-to-use: When optimizing content for AI engine discovery and citations
+user-invocable: false
+effort: medium
 ---
 
 # AI Engine Optimization (AEO) Skill

@@ -1,7 +1,9 @@
 ---
 name: agent-teams
 description: Claude Code Agent Teams - default team-based development with strict TDD pipeline enforcement
+when-to-use: When spawning agent teams for parallel feature development with TDD pipeline
 user-invocable: false
+effort: high
 ---
 
 # Agent Teams Skill
