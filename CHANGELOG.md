@@ -66,6 +66,21 @@ This release aligns Claude Bootstrap with how Claude Code actually works interna
 - Claude Code resolves these at load time (recursively inlined)
 - Skills actually become part of the prompt instead of decorative text
 
+#### CLAUDE.md Template Structure
+- Added **Project Structure** section — tells Claude where things live without filesystem exploration
+- Added **Key Decisions** section — prevents Claude from re-litigating settled architectural choices
+- Added **Conventions** section — patterns Claude should follow (test colocation, API shape, etc.)
+- Added **Don't** section — short guardrails (no .env writes, no secret leaks)
+- Removed Session Persistence section (belongs in skills, not root template)
+
+#### Full Skill Frontmatter (all 57 skills)
+- Added undocumented-but-functional Claude Code skill frontmatter to all 57 skills:
+  - `when-to-use` — guidance for when Claude should invoke the skill
+  - `user-invocable` — 11 skills are user-invocable (code-review, codex-review, gemini-review, security, existing-repo, ticket-craft, workspace, cpg-analysis, playwright-testing, ai-models), 46 are model-only
+  - `effort` — thinking depth per skill (6 high, 47 medium, 4 low)
+  - `paths` — file glob patterns for 24 language/framework/database skills (e.g., `["**/*.py"]` for Python, `["**/*.tsx"]` for React)
+  - `allowed-tools` — restricted tool access for 3 review/security skills (`[Read, Glob, Grep, Bash]`)
+
 ### Changed
 - `install.sh` now copies rules/, templates/, and no longer checks for Ralph Wiggum plugin
 - `iterative-development/SKILL.md` completely rewritten for Stop hooks
