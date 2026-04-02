@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.1.0] - 2026-04-02
+
+### Added
+
+#### iCPG Skill (Intent-enhanced Code Property Graph)
+- **`skills/icpg/SKILL.md`** — New skill that adds an Intent Graph (IG) layer on top of existing CPG tooling
+  - Tracks WHY code exists by linking tasks/goals to code symbols
+  - Six edge types: CREATES, MODIFIES, REQUIRES, DUPLICATES, VALIDATED_BY, DRIFTS_FROM
+  - Four-table schema (intents, symbols, intent_edges, drift_events)
+  - Symbol extraction guides for Python (ast module), Elixir (regex), TypeScript (regex)
+  - Intent capture workflow: create intent before coding, record symbols after
+  - Historical intent inference from git log
+  - Drift detection: compare symbol checksums against creating intent
+  - Claude Code hook integration: pre-edit shows blast radius + signatures to preserve
+  - Slash command patterns: `/icpg-impact`, `/icpg-why`, `/icpg-drift`
+  - Scaling guide: SQLite → Supabase → materialized views
+  - Works with: `code-graph.md` (Tier 1) + `cpg-analysis.md` (Tier 2/3)
+
+---
+
 ## [3.0.0] - 2026-03-31
 
 ### Breaking Changes
