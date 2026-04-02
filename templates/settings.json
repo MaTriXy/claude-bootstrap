@@ -20,7 +20,9 @@
       "Bash(ls *)",
       "Bash(cat *)",
       "Bash(head *)",
-      "Bash(wc *)"
+      "Bash(wc *)",
+      "Bash(icpg *)",
+      "Bash(python -m icpg *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -45,6 +47,19 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/icpg-pre-edit.sh",
+            "timeout": 3,
+            "statusMessage": "Checking intent context..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -53,6 +68,12 @@
             "command": "scripts/tdd-loop-check.sh",
             "timeout": 60,
             "statusMessage": "Running tests..."
+          },
+          {
+            "type": "command",
+            "command": "scripts/icpg-stop-record.sh",
+            "timeout": 5,
+            "statusMessage": "Recording symbols to intent graph..."
           }
         ]
       }

@@ -1,246 +1,170 @@
 ---
 name: icpg
-description: Intent-enhanced Code Property Graph — track WHY code exists, not just WHAT it is. Links tasks/goals to code symbols with typed edges for traceability, blast radius, and drift detection.
+description: Intent-Augmented Code Property Graph — tracks WHY code exists via ReasonNodes with formal contracts, 6-dimension drift detection, and 3 canonical pre-task queries for autonomous development
+when-to-use: "Before any code change — query the reason graph for intent, constraints, and risk"
+user-invocable: false
+effort: high
 ---
 
-# iCPG Skill (Intent-enhanced Code Property Graph)
+# iCPG Skill (Intent-Augmented Code Property Graph)
 
 *Load with: base.md + code-graph.md*
 
-**Purpose:** Add an Intent Graph layer on top of code structure so every
+**Purpose:** Add a Reason Graph layer on top of code structure so every
 function, class, and module is traceable to the goal that created it,
 the agent or human that owns it, and whether it's still doing what it
 was supposed to do.
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│  iCPG = AST + CFG + PDG + IG (Intent Graph)                    │
+│  iCPG = AST + CFG + PDG + RG (Reason Graph)                    │
 │  ─────────────────────────────────────────────────────────────│
 │  AST  = Abstract Syntax Tree (structure)      ← existing       │
 │  CFG  = Control Flow Graph (execution paths)  ← existing       │
 │  PDG  = Program Dependency Graph              ← existing       │
-│  IG   = Intent Graph (WHY layer)              ← THIS SKILL     │
+│  RG   = Reason Graph (WHY layer)              ← THIS SKILL     │
 │                                                                │
-│  The IG stores intents (goals/tasks), links them to code       │
-│  symbols via typed edges, and detects when code drifts from    │
-│  its original purpose.                                         │
+│  The RG stores ReasonNodes (goals/tasks), links them to code   │
+│  symbols via typed edges, enforces contracts (DbC), and        │
+│  detects when code drifts from its original purpose.           │
+│                                                                │
+│  Storage: .icpg/reason.db (SQLite, per-project, gitignored)   │
+│  CLI: icpg init | create | record | query | drift | bootstrap │
 └────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Core Concepts
+## Core Principle
 
-### IntentNode — one per task/goal
+**Intent first, code second.** Before writing or modifying code, query
+the reason graph to understand WHY existing code was written, WHAT
+constraints it must preserve, and WHETHER your change duplicates prior
+work.
+
+---
+
+## The 3 Canonical Pre-Task Queries
+
+**Every agent MUST run these before writing code:**
+
+| # | Query | Command | What It Answers |
+|---|-------|---------|-----------------|
+| 1 | **search_prior_work** | `icpg query prior "<goal>"` | Has this been attempted before? Prevents duplication. |
+| 2 | **get_constraints** | `icpg query constraints <file>` | What invariants apply to files I'll touch? Prevents breakage. |
+| 3 | **get_risk_profile** | `icpg query risk <symbol>` | Is this symbol fragile? Drift history, ownership changes. |
+
+---
+
+## ReasonNode — The Core Primitive
+
+Each ReasonNode captures a stated purpose with a formal contract:
 
 ```
-id              Unique identifier (task ID, commit hash, or generated)
-goal            Natural language: what is this trying to achieve (one sentence)
+id              UUID
+goal            Natural language: what is this trying to achieve
+decision_type   business_goal | arch_decision | task | workaround | constraint | patch
 scope           Files/modules expected to be touched
-owner           Human accountable
-agent           Which AI agent if agent-written
+owner           Human or agent accountable
 status          proposed | executing | fulfilled | drifted | abandoned
-source          manual | commit | migration | inferred
+source          manual | commit | inferred | agent-session
+
+FORMAL CONTRACT (Design by Contract):
+  preconditions    What must be true before this intent executes
+  postconditions   What must be true when fulfilled
+  invariants       What must remain true throughout and after
 ```
 
-### DriftEvent — auto-generated when behavior diverges from intent
+**Drift = predicate failure.** A symbol has drifted when its current
+behavior no longer satisfies the postconditions of the ReasonNode that
+created it, or when an invariant is violated.
+
+---
+
+## Six Edge Types
 
 ```
-symbol          The code symbol that changed
-from_intent     The intent it was supposed to fulfill
-severity        0-1 (how far it drifted)
-```
-
-### Six Edge Types
-
-```
-CREATES      Intent  → Symbol   (this intent created this function)
-MODIFIES     Intent  → Symbol   (this intent changed this function)
-REQUIRES     Intent  → Intent   (B depends on A being done first)
-DUPLICATES   Intent  → Intent   (these two goals overlap)
-VALIDATED_BY Intent  → Test     (this test proves the intent was satisfied)
-DRIFTS_FROM  Symbol  → Intent   (this symbol no longer does what it was made for)
+CREATES      Reason  → Symbol   (this intent created this function)
+MODIFIES     Reason  → Symbol   (this intent changed this function)
+REQUIRES     Reason  → Reason   (B depends on A being done first)
+DUPLICATES   Reason  → Reason   (these two goals overlap)
+VALIDATED_BY Reason  → Test     (this test proves the intent was satisfied)
+DRIFTS_FROM  Symbol  → Reason   (this symbol no longer does what it was made for)
 ```
 
 ---
 
-## What You Can Query
+## 6-Dimension Drift Model
 
-| Question | How |
-|----------|-----|
-| "What was the original goal of this function?" | Follow CREATES edge backwards from symbol |
-| "If I change this, what breaks?" | Traverse PDG + REQUIRES edges for blast radius |
-| "Is my codebase drifting from its design?" | Count DRIFTS_FROM edges per module |
-| "Did someone already solve this problem?" | Find DUPLICATES matches before writing new code |
-| "Which agent wrote this and why?" | Read owner + goal on the IntentNode |
-| "Do my tests actually prove intent?" | Gap between VALIDATED_BY coverage and symbols |
+| Dimension | What It Means | Detection |
+|-----------|--------------|-----------|
+| **Spec drift** | Symbol checksum changed without a MODIFIES edge | Compare stored vs current checksum |
+| **Decision drift** | Postconditions no longer hold | Evaluate predicates against codebase |
+| **Ownership drift** | >3 different owners without coherent oversight | Count unique owners on edges |
+| **Test drift** | VALIDATED_BY tests missing or failing | Check test file existence + run |
+| **Usage drift** | Symbol used outside original scope | Grep for imports beyond scope |
+| **Dependency drift** | Downstream REQUIRES reasons have drifted | Traverse REQUIRES edges |
+
+Run `icpg drift check` to scan all dimensions. Each produces a 0-1 severity score.
 
 ---
 
-## Implementation Guide
+## CLI Reference
 
-### Storage (Supabase / SQLite / Postgres)
-
-Four tables:
-
-```sql
--- Intents: goals/tasks that drive code changes
-CREATE TABLE intents (
-    id          TEXT PRIMARY KEY,
-    goal        TEXT NOT NULL,
-    scope       TEXT[],
-    owner       TEXT,
-    agent       TEXT,
-    status      TEXT DEFAULT 'proposed',  -- proposed|executing|fulfilled|drifted|abandoned
-    source      TEXT DEFAULT 'manual',    -- manual|commit|migration|inferred
-    task_id     TEXT,                     -- link to external task tracker
-    parent_id   TEXT REFERENCES intents(id),
-    created_at  TIMESTAMPTZ DEFAULT NOW(),
-    fulfilled_at TIMESTAMPTZ
-);
-
--- Symbols: code entities
-CREATE TABLE symbols (
-    id          TEXT PRIMARY KEY,         -- hash of file:name:type
-    name        TEXT NOT NULL,
-    file_path   TEXT NOT NULL,
-    symbol_type TEXT NOT NULL,            -- function|class|module|route|schema|component
-    language    TEXT NOT NULL,
-    codebase    TEXT NOT NULL,
-    signature   TEXT,                     -- function signature or field list
-    checksum    TEXT,                     -- hash of symbol body for drift detection
-    created_at  TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Intent edges: relationships
-CREATE TABLE intent_edges (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    from_id     TEXT NOT NULL,
-    to_id       TEXT NOT NULL,
-    edge_type   TEXT NOT NULL,            -- CREATES|MODIFIES|REQUIRES|DUPLICATES|VALIDATED_BY|DRIFTS_FROM
-    confidence  REAL DEFAULT 1.0,
-    created_at  TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Drift events
-CREATE TABLE drift_events (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    symbol_id       TEXT NOT NULL REFERENCES symbols(id),
-    from_intent_id  TEXT NOT NULL REFERENCES intents(id),
-    severity        REAL DEFAULT 0.5,
-    description     TEXT,
-    resolved        BOOLEAN DEFAULT FALSE,
-    detected_at     TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-### Symbol Extraction
-
-**Python** — Use `ast` module (stdlib):
-```python
-import ast
-tree = ast.parse(source)
-for node in ast.walk(tree):
-    if isinstance(node, ast.ClassDef):
-        # Extract class name, bases, line numbers
-    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-        # Extract function name, params, return type, decorators
-```
-
-**Elixir** — Regex patterns:
-```python
-import re
-# Modules: defmodule X do
-# Functions: def/defp name(args)
-# Schemas: schema "table" do ... field :name, :type
-# GenServers: use GenServer
-```
-
-**TypeScript/React** — Regex patterns:
-```python
-# Components: export function/const X (returning JSX)
-# Hooks: export function use*
-# Types: export interface/type X
-# Routes: <Route path="..." element={...} />
-```
-
-### Intent Capture
-
-**Going forward** — Create an IntentNode before each task:
-```markdown
-## Before writing code:
-1. What is the goal? (one sentence)
-2. Which files will you touch?
-3. Does an existing intent already cover this?
-
-## After completing:
-1. Which symbols did you create/modify?
-2. Did you touch anything outside your original scope? (potential drift)
-3. Update intent status to 'fulfilled'
-```
-
-**Historical** — Infer intents from git history:
+### Setup
 ```bash
-# For each commit cluster in the last 90 days:
-# 1. Extract commit messages + PR descriptions
-# 2. LLM infers the intent
-# 3. Link to symbols via git diff file/function names
+icpg init                          # Create .icpg/ and database
+icpg bootstrap --days 90           # Infer ReasonNodes from git history
+icpg bootstrap --days 90 --no-llm  # Without LLM (commit-message only)
 ```
 
-### Drift Detection
+### Create & Record
+```bash
+icpg create "Add JWT auth" --scope src/auth/ --owner feature-auth --type task
+icpg record --reason <id> --base main         # Record symbols from git diff
+icpg record --reason <id> --edge-type MODIFIES # Record as modifications
+```
 
-After any commit:
-1. Get symbols that changed (from git diff)
-2. Find their creating intent (CREATES edge)
-3. Compare current signature/checksum against what it was when intent was fulfilled
-4. If changed without a new MODIFIES intent → create DriftEvent
+### Query (the 3 canonical queries)
+```bash
+icpg query prior "user authentication"     # 1. Duplicate detection
+icpg query constraints src/auth/service.ts  # 2. Invariants for file
+icpg query risk validateToken              # 3. Symbol risk profile
+icpg query context src/auth/service.ts     # All intents for a file
+icpg query blast <reason-id>               # Full blast radius
+```
+
+### Drift
+```bash
+icpg drift check          # Full scan across all dimensions
+icpg drift resolve <id>   # Mark drift event resolved
+```
+
+### Status
+```bash
+icpg status               # Stats: reasons, symbols, edges, drift
+```
 
 ---
 
-## Integration with Claude Code
+## Storage
 
-### Hooks (recommended)
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [{
-      "matcher": "Edit|Write",
-      "hooks": [{
-        "type": "http",
-        "url": "http://localhost:PORT/api/hooks/pre-edit",
-        "timeout": 5
-      }]
-    }]
-  }
-}
-```
-
-The pre-edit hook queries iCPG for:
-- Symbols in the file being edited
-- Their creating intents (why they exist)
-- Blast radius (what depends on them)
-- Signatures to preserve (contracts)
-
-Claude Code sees this before every edit:
-```
-FILE SYMBOLS (5 in app/services/surveys.py):
-  class SurveyService | Intent: BE-031 Survey transformer
-  function create(self, org_id: int) → Survey | Intent: BE-031
-
-BLAST RADIUS:
-  BE-031: 106 symbols, 7 dependent tasks (BE-032, BE-033, FE-002)
-
-PRESERVE these function signatures unless the task requires changing them.
-```
-
-### Slash Commands
+Per-project, gitignored, zero infrastructure:
 
 ```
-/icpg-impact BE-001        # Blast radius of a task
-/icpg-impact SurveyService # What depends on this symbol
-/icpg-why create_survey    # Why does this function exist
-/icpg-drift                # Show all unresolved drift
+.icpg/
+  reason.db       SQLite database (4 tables: reasons, symbols, edges, drift_events)
+  .gitignore      Contains: *
+  chroma/         ChromaDB vectors (if chromadb installed)
+  tfidf_cache.json  TF-IDF fallback cache
+  .current-intent   Marker file for active intent (used by Stop hook)
+```
+
+Install options:
+```bash
+pip install ./scripts/icpg            # Core (zero deps)
+pip install "./scripts/icpg[vectors]"  # + ChromaDB for duplicate detection
+pip install "./scripts/icpg[all]"      # + ChromaDB + scikit-learn + openai
 ```
 
 ---
@@ -248,40 +172,146 @@ PRESERVE these function signatures unless the task requires changing them.
 ## Workflow: Before Any Code Change
 
 ```
-0. INTENT     → Create or identify the intent for this change
-1. LOCATE     → Find symbols via search_graph or iCPG
-2. BLAST      → Check blast radius: what depends on this?
-3. CONTRACTS  → Note function signatures that must be preserved
-4. CHANGE     → Make the edit
-5. VERIFY     → Run tests, check for drift
-6. RECORD     → Update intent status, link new symbols
+0. INTENT       → icpg create (or identify existing intent)
+1. DEDUP        → icpg query prior (check for duplicate work)
+2. CONSTRAINTS  → icpg query constraints (understand invariants)
+3. RISK         → icpg query risk (check fragile symbols)
+4. LOCATE       → search_graph to find symbols (code-graph skill)
+5. CHANGE       → Make the edit (PreToolUse hook shows context)
+6. RECORD       → icpg record (link symbols to intent)
+7. DRIFT CHECK  → icpg drift check (verify no unintended drift)
+8. VERIFY       → Run tests, lint, typecheck
+```
+
+**Step 0 is non-negotiable for autonomous agents.** Every change must
+be linked to a stated purpose. Without an intent, there's nothing to
+measure drift against.
+
+---
+
+## Hook Integration
+
+### PreToolUse Hook (automatic context injection)
+
+Add to `.claude/settings.json`:
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Edit|Write",
+      "hooks": [{
+        "type": "command",
+        "command": "scripts/icpg-pre-edit.sh",
+        "timeout": 3,
+        "statusMessage": "Checking intent context..."
+      }]
+    }]
+  }
+}
+```
+
+Before every file edit, agents see:
+```
+═══ iCPG CONTEXT ═══
+INTENTS for src/auth/service.ts:
+  [>] a1b2c3d4 — User authentication with JWT tokens
+      Owner: feature-auth | Status: executing
+      Invariants: 2
+CONSTRAINTS for src/auth/service.ts:
+  From intent: User authentication with JWT tokens
+    INV: file_exists("src/auth/middleware.ts")
+    POST: test_exists("src/auth/__tests__/service.test.ts")
+PRESERVE function signatures unless your task requires changing them.
+═══════════════════
+```
+
+### Stop Hook (automatic symbol recording)
+
+After implementation passes tests, auto-records symbols:
+```json
+{
+  "hooks": {
+    "Stop": [{
+      "hooks": [
+        {"type": "command", "command": "scripts/tdd-loop-check.sh", "timeout": 60},
+        {"type": "command", "command": "scripts/icpg-stop-record.sh", "timeout": 5}
+      ]
+    }]
+  }
+}
 ```
 
 ---
 
-## Best Practices
+## Agent Teams Integration
 
-| Do | Don't |
-|----|-------|
-| Create an intent before every non-trivial change | Start coding without stating the goal |
-| Check blast radius before modifying shared code | Assume your change is isolated |
-| Record which symbols you created/modified | Leave intent in 'executing' forever |
-| Check for DUPLICATES before building something new | Rebuild what already exists |
-| Use VALIDATED_BY edges to link tests to intents | Write tests that don't trace to a goal |
-| Review DRIFTS_FROM after large refactors | Ignore drift accumulation |
+### Updated Pipeline (agent-teams + iCPG)
+
+```
+ 0. INTENT       Team lead creates ReasonNode from feature spec
+ 0b. DEDUP       icpg query prior — check for duplicate intents
+ 1. SPEC         Feature agent writes spec
+ 2. SPEC-REVIEW  Quality agent reviews spec + intent alignment
+ 3. TESTS (RED)  Feature agent writes tests
+ 4. RED-VERIFY   Quality agent verifies tests fail
+ 5. IMPLEMENT    Feature agent codes (PreEdit hook shows context)
+ 5b. RECORD      Auto-record symbols → intent (Stop hook)
+ 5c. DRIFT-CHECK Quality agent verifies no scope drift
+ 6. GREEN-VERIFY Quality agent verifies tests pass + coverage
+ 7. VALIDATE     Lint + typecheck + full suite
+ 8. CODE-REVIEW  Review agent (sees intent context per file)
+ 9. SECURITY     Security agent
+10. BRANCH-PR    Merger agent (PR includes intent traceability)
+```
+
+### Agent Responsibilities
+
+| Agent | iCPG Action |
+|-------|-------------|
+| **Team Lead** | `icpg create` when creating task chains. `icpg query prior` to check duplicates. |
+| **Feature Agent** | `icpg query constraints` before implementing. Writes `.icpg/.current-intent` for auto-recording. |
+| **Quality Agent** | `icpg drift check` during GREEN verify. Verifies scope alignment. |
+| **Review Agent** | Sees intent context via PreToolUse hook when reviewing files. |
+| **Merger Agent** | Includes intent traceability in PR description. |
 
 ---
 
-## Scaling iCPG
+## Bootstrapping from Git History
 
-| Codebase Size | Storage | Approach |
-|---------------|---------|----------|
-| < 500 files | SQLite | Single-file DB, fast queries |
-| 500-5,000 files | Supabase/Postgres | Schema-scoped tables, indexes |
-| 5,000+ files | Supabase + materialized views | Pre-compute blast radius, cache hot queries |
+For existing codebases, infer ReasonNodes from commit history:
 
-For multi-repo projects, use a `codebase` column to partition symbols and run
-cross-repo dependency analysis via shared intent IDs.
+```bash
+icpg bootstrap --days 90 --verbose
+```
+
+This will:
+1. Get commits from last 90 days
+2. Cluster by temporal proximity (2-hour window)
+3. Infer intent via LLM (Claude or OpenAI) or commit message parsing
+4. Create ReasonNodes with `source: "inferred"`, `confidence: 0.6-0.8`
+5. Extract symbols from changed files, create CREATES edges
+6. Run duplicate detection against existing ReasonNodes
+
+**Quality note:** Inferred intents are marked low-confidence. Review and
+promote high-value ones manually.
+
+---
+
+## Contract Predicates
+
+Predicates are structured assertions over codebase state:
+
+```
+file_exists("src/auth/middleware.ts")
+test_exists("src/auth/__tests__/service.test.ts")
+symbol_count("src/auth/") <= 15
+function_signature("validateToken") == "(token: string) => Promise<User>"
+```
+
+Contracts can be:
+- **Hand-authored** for high-risk ReasonNodes
+- **LLM-inferred** via `icpg create --infer-contracts`
+- **Heuristic** (scope → file_exists, test → test_exists)
 
 ---
 
@@ -289,8 +319,10 @@ cross-repo dependency analysis via shared intent IDs.
 
 | Anti-Pattern | Do This Instead |
 |-------------|-----------------|
-| Skipping intent creation ("I'll document later") | Spend 30 seconds stating the goal upfront |
-| Huge intents covering 20 files | One intent per logical change, max 5-7 files |
-| Ignoring drift events | Review weekly, resolve or create new intents |
-| Using iCPG only for new code | Backfill historical intents from git log |
-| Storing full source code in symbols | Store signature + checksum only — read source from files |
+| Coding without stating intent | `icpg create` before every non-trivial change |
+| Assuming your change is isolated | `icpg query constraints` + `icpg query risk` first |
+| Rebuilding what already exists | `icpg query prior` to check for prior work |
+| Leaving intent in 'executing' forever | Update status to 'fulfilled' when done |
+| Ignoring drift events | `icpg drift check` weekly, resolve or create new intents |
+| Storing full source in symbols | Store signature + checksum only — read source from files |
+| Skipping bootstrap on existing repos | `icpg bootstrap --days 90` to build initial graph |

@@ -6,23 +6,65 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.2.0] - 2026-04-02
+
+### Added
+
+#### iCPG Full Implementation (Intent-Augmented Code Property Graph)
+- **`scripts/icpg/`** — Python CLI package implementing the full iCPG RFC v8
+  - `models.py` — ReasonNode, Symbol, Edge, DriftEvent data models with Design by Contract (preconditions, postconditions, invariants)
+  - `store.py` — SQLite storage layer with 4 tables, WAL mode, indexed queries
+  - `symbols.py` — Language-aware symbol extraction: Python (AST), TypeScript/JS (regex), Go, Rust, Elixir
+  - `drift.py` — 6-dimension drift detection: spec, decision, ownership, test, usage, dependency
+  - `contracts.py` — Design by Contract layer with LLM inference (Claude/OpenAI) and heuristic fallback
+  - `vectors.py` — Tiered duplicate detection: ChromaDB → TF-IDF → exact match fallback
+  - `bootstrap.py` — Git history inference: cluster commits, LLM-infer ReasonNodes, link symbols
+  - `__main__.py` — CLI with subcommands: init, create, record, query, drift, bootstrap, status
+  - `pyproject.toml` — pip-installable with optional deps (chromadb, sentence-transformers, openai)
+
+- **3 Canonical Pre-Task Queries** (RFC Section 2.1):
+  - `icpg query prior "<goal>"` — Vector-based duplicate detection before starting work
+  - `icpg query constraints <file>` — Get invariants/contracts for files being modified
+  - `icpg query risk <symbol>` — Drift score, ownership history, modification count
+
+- **Hook Integration**:
+  - `templates/icpg-pre-edit.sh` — PreToolUse hook: injects intent context + constraints before every Edit/Write
+  - `templates/icpg-stop-record.sh` — Stop hook: auto-records symbols to active ReasonNode after implementation
+
+- **Slash Commands**:
+  - `commands/icpg-impact.md` — `/icpg-impact <id>` blast radius visualization
+  - `commands/icpg-why.md` — `/icpg-why <symbol>` trace symbol to creating intent
+  - `commands/icpg-drift.md` — `/icpg-drift` full drift report across all dimensions
+  - `commands/icpg-bootstrap.md` — `/icpg-bootstrap` infer intents from git history
+
+### Changed
+
+#### iCPG Skill Rewrite
+- **`skills/icpg/SKILL.md`** — Complete rewrite aligning with RFC v8
+  - ReasonNode now carries formal contracts (preconditions, postconditions, invariants)
+  - Drift formally defined as predicate failure (not vague metric)
+  - 6-dimension drift model with 0-1 severity scores per dimension
+  - CLI reference for all `icpg` subcommands
+  - Hook integration documentation (PreToolUse + Stop)
+  - Agent Teams integration section with updated pipeline
+
+#### Agent Team iCPG Integration
+- **`skills/agent-teams/agents/team-lead.md`** — Team lead now creates ReasonNodes and checks for duplicates before creating task chains
+- **`skills/agent-teams/agents/feature.md`** — Feature agents query constraints/risk before implementing, auto-record symbols after
+- **`skills/agent-teams/agents/quality.md`** — Quality agent runs drift checks during GREEN verify, validates spec-intent alignment
+- **`skills/agent-teams/SKILL.md`** — Updated "Integration with Existing Skills" table with iCPG + code-graph entries
+
+#### Settings Template
+- **`templates/settings.json`** — Added PreToolUse hook (icpg-pre-edit.sh), Stop hook extension (icpg-stop-record.sh), icpg permission allows
+
+---
+
 ## [3.1.0] - 2026-04-02
 
 ### Added
 
-#### iCPG Skill (Intent-enhanced Code Property Graph)
-- **`skills/icpg/SKILL.md`** — New skill that adds an Intent Graph (IG) layer on top of existing CPG tooling
-  - Tracks WHY code exists by linking tasks/goals to code symbols
-  - Six edge types: CREATES, MODIFIES, REQUIRES, DUPLICATES, VALIDATED_BY, DRIFTS_FROM
-  - Four-table schema (intents, symbols, intent_edges, drift_events)
-  - Symbol extraction guides for Python (ast module), Elixir (regex), TypeScript (regex)
-  - Intent capture workflow: create intent before coding, record symbols after
-  - Historical intent inference from git log
-  - Drift detection: compare symbol checksums against creating intent
-  - Claude Code hook integration: pre-edit shows blast radius + signatures to preserve
-  - Slash command patterns: `/icpg-impact`, `/icpg-why`, `/icpg-drift`
-  - Scaling guide: SQLite → Supabase → materialized views
-  - Works with: `code-graph.md` (Tier 1) + `cpg-analysis.md` (Tier 2/3)
+#### iCPG Skill (Initial Spec)
+- **`skills/icpg/SKILL.md`** — Initial iCPG skill spec (now superseded by 3.2.0 full implementation)
 
 ---
 

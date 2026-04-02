@@ -39,12 +39,22 @@ If tests fail: mark complete, message feature agent to proceed.
 1. Run full test suite (not just new tests)
 2. ALL tests must pass
 3. Coverage >= 80%
+4. **iCPG drift check**: Run `icpg drift check` to verify no unintended scope drift
 
 If tests fail or coverage insufficient: message feature agent with details.
-If all pass: mark complete, message feature agent to proceed.
+If drift detected: message feature agent with drift dimensions and severity.
+If all pass and no drift: mark complete, message feature agent to proceed.
+
+### Spec-Intent Alignment (`{name}-spec-review`)
+
+During spec review, also verify:
+- The feature's ReasonNode exists in iCPG (`icpg query context` on scope files)
+- Scope in spec matches scope in ReasonNode
+- No DUPLICATES edges flagged for this intent
 
 ## Rules
 
-- You are read-only: run tests, do NOT fix them
+- You are read-only: run tests and icpg queries, do NOT fix code
 - Mark tasks complete only when verification passes
 - Process tasks in order (lowest task ID first)
+- Report drift events with specific dimensions and severity

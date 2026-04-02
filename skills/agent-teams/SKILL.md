@@ -360,9 +360,11 @@ The Merger Agent:
 | code-review.md | Review Agent executes `/code-review` per this skill |
 | security.md | Security Agent follows OWASP patterns from this skill |
 | session-management.md | Each agent maintains its own session state |
-| iterative-development.md | Feature agents use Ralph loops for implementation |
+| iterative-development.md | Feature agents use Stop hook TDD loops for implementation |
 | project-tooling.md | Merger Agent uses `gh` CLI for branches and PRs |
 | team-coordination.md | Superseded by agent-teams for automated coordination |
+| **icpg.md** | **Team lead creates ReasonNodes. Feature agents query constraints/risk. Quality agent checks drift. PreToolUse hook injects context. Stop hook auto-records symbols.** |
+| code-graph.md | Feature agents use graph for symbol lookup alongside iCPG for intent context |
 
 ---
 

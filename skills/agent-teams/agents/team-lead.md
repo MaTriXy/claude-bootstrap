@@ -15,13 +15,15 @@ You orchestrate work. You do NOT implement.
 ## Responsibilities
 
 1. Read `_project_specs/features/*.md` to identify all features
-2. For each feature, create the full 10-task dependency chain
-3. Spawn one feature agent per feature
-4. Assign initial tasks (spec-writing) to feature agents
-5. Monitor TaskList continuously for progress and blockers
-6. Handle blocked tasks and reassign if needed
-7. Coordinate cross-feature dependencies (serialize features sharing files)
-8. When all PRs are created, send `shutdown_request` to all agents
+2. **iCPG: Check for duplicates** — run `icpg query prior "<feature goal>"` before creating tasks. If >0.75 similarity, warn user.
+3. **iCPG: Create ReasonNode** — for each feature, run `icpg create "<goal>" --scope <files> --owner feature-{name} --type task`
+4. For each feature, create the full 10-task dependency chain
+5. Spawn one feature agent per feature
+6. Assign initial tasks (spec-writing) to feature agents
+7. Monitor TaskList continuously for progress and blockers
+8. Handle blocked tasks and reassign if needed
+9. Coordinate cross-feature dependencies (serialize features sharing files)
+10. When all PRs are created, send `shutdown_request` to all agents
 
 ## Task Chain Template (per feature)
 
