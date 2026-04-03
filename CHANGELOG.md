@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **`CheckpointNode`** — Added `task_narrative` (str) and `recent_files` (list[dict]) fields for richer checkpoint content.
 - **`settings.json`** — Added new PreToolUse entry (no matcher) for `mnemos-post-compact-inject.sh` before the existing Edit|Write matcher.
 - **`SKILL.md`** — Documented post-compaction recovery mechanism.
+- **`README.md`** — Rewrote Mnemos section with two-layer defense architecture, resilience failure mode table, "why not just a plain file" rationale, and post-compaction restoration flow diagram.
 
 ## [3.3.0] - 2026-04-03
 

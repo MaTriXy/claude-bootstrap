@@ -4,7 +4,7 @@
 
 **The bottleneck has moved from code generation to code comprehension.** AI can generate infinite code, but humans still need to review, understand, and maintain it. Claude Bootstrap provides guardrails that keep AI-generated code simple, secure, and verifiable.
 
-**New in v3.3.0:** Mnemos task-scoped memory lifecycle — 4-dimension fatigue monitoring, typed compaction guidance, checkpoint/resume across sessions. iCPG intent-augmented code property graph — track why code exists, detect drift, prevent duplicate work. Auto-feeding token signal via statusline + JSONL fallback.
+**New in v3.3.1:** Mnemos two-layer post-compaction task restoration — guaranteed context recovery when Claude Code's compaction fires, crashes, or doesn't run. Typed memory graph (goals never evicted), 4-dimension fatigue monitoring, checkpoint/resume across sessions. iCPG intent-augmented code property graph — track why code exists, detect drift, prevent duplicate work.
 
 ## Core Philosophy
 
@@ -180,7 +180,7 @@ Zero overhead during normal usage. Only runs when compaction actually fires.
 
 ## Mnemos — Task-Scoped Memory Lifecycle
 
-Mnemos prevents lossy context compaction from destroying structured knowledge. It augments Claude Code's built-in autocompact with continuous fatigue monitoring, typed memory preservation, and checkpoint/resume.
+Claude Code's built-in compaction is lossy and unreliable. It sometimes doesn't fire, `/compact` and `/clear` can fail (especially in multi-agent executions), and crashes/restarts lose all context. Mnemos provides **disk-persistent structured state** that survives all of these failure modes.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -190,11 +190,62 @@ Mnemos prevents lossy context compaction from destroying structured knowledge. I
 │  Sudden hard compaction           Graduated: 40→60→75→83%   │
 │  Uniform summarization            Typed: goals never evict  │
 │  No cross-session memory          Auto checkpoint/resume    │
+│  Crash = total context loss       Crash = resume from disk  │
+│  Multi-agent: no shared state     Per-agent structured state│
 │  No behavioral awareness          Detects re-reads, scatter │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Fatigue Model** (all 4 dimensions passively observed from hooks — no agent cooperation needed):
+### Post-Compaction Task Restoration (Two-Layer Defense)
+
+When compaction fires, the built-in summarizer often drops task-specific state. Mnemos uses two independent layers to guarantee restoration:
+
+```
+BEFORE COMPACTION                    AFTER COMPACTION
+
+PreCompact hook fires                First tool call → PreToolUse fires
+├── Write emergency checkpoint       ├── Detect ".mnemos/just-compacted" marker
+├── Build task narrative from        ├── Read checkpoint-latest.json
+│   signals.jsonl (files, tools)     ├── Output full checkpoint into context
+├── Output STRONG preservation       ├── Delete marker (one-shot)
+│   instructions to summarizer       └── Claude now has: summary + checkpoint
+└── Write ".mnemos/just-compacted"
+    marker file                      = Task fully restored
+```
+
+**Layer 1** (best-effort): PreCompact tells the summarizer what to keep, including inline checkpoint content with typed eviction priorities.
+
+**Layer 2** (guaranteed): Post-compaction injection via PreToolUse re-injects the full checkpoint on the first tool call after compaction. Doesn't depend on the summarizer. Fast path ~5ms when no compaction occurred.
+
+### Why Not Just Write to a Plain File?
+
+You could — but you'd immediately face: what format? When to update? How to distinguish "this is critical" from "this is nice to have"? The MnemoGraph's typed nodes solve this:
+
+| Node Type | Eviction Policy | Example |
+|-----------|----------------|---------|
+| GoalNode | NEVER evict | "Implement auth module" |
+| ConstraintNode | NEVER evict | "API backward compatibility" |
+| ResultNode | Compress first | "JWT middleware tested" → summary kept |
+| WorkingNode | Compress first | Current reasoning / in-progress analysis |
+| ContextNode | Evictable | File contents → re-read from disk |
+
+Without typed priorities, a checkpoint is just a blob. With them, the system knows goals > constraints > working memory > context, and makes intelligent decisions about what to restore within token budgets.
+
+### Resilience Beyond Normal Compaction
+
+The real value isn't the happy path — it's when things go wrong:
+
+| Failure Mode | CC Built-in | Mnemos |
+|---|---|---|
+| Session crash/collapse | Context gone | Checkpoint on disk survives |
+| `/compact` doesn't fire | Truncation at limit | Fatigue hooks wrote checkpoints earlier |
+| Multi-agent child dies | No recovery | Child's `.mnemos/` has structured state |
+| Forced restart | Generic summary | SessionStart reloads full checkpoint |
+| `/clear` fails in multi-agent | Stuck in weird state | MnemoGraph is independent of CC's state |
+
+### Fatigue Model
+
+4 dimensions passively observed from hooks — no agent cooperation needed:
 
 | Dimension | Weight | Signal Source | Detects |
 |-----------|--------|---------------|---------|
@@ -203,23 +254,9 @@ Mnemos prevents lossy context compaction from destroying structured knowledge. I
 | Re-read ratio | 0.20 | PreToolUse Read calls | Agent re-reading files (context loss) |
 | Error density | 0.15 | PostToolUse outcomes | Agent struggling (high error rate) |
 
-**Fatigue States:**
-- **FLOW** (0.0-0.4): Normal operation
-- **COMPRESS** (0.4-0.6): Micro-consolidation runs
-- **PRE-SLEEP** (0.6-0.75): Checkpoint written, keep changes focused
-- **REM** (0.75-0.9): Emergency checkpoint, consider wrapping up
-- **EMERGENCY** (0.9+): Checkpoint written, hand off immediately
+Fatigue states: **FLOW** (0-0.4) → **COMPRESS** (0.4-0.6) → **PRE-SLEEP** (0.6-0.75) → **REM** (0.75-0.9) → **EMERGENCY** (0.9+). The fatigue model ensures checkpoints are written *before* things go wrong — so when a crash happens at 0.85, you have a recent checkpoint from 0.6.
 
-**What Survives Compaction:**
-
-| Node Type | Eviction Policy | Example |
-|-----------|----------------|---------|
-| GoalNode | NEVER evict | "Implement auth module" |
-| ConstraintNode | NEVER evict | "API backward compatibility" |
-| ResultNode | Compress first | "JWT middleware tested" → summary kept |
-| ContextNode | Evictable | File contents → re-read from disk |
-
-**CLI:**
+### CLI
 
 ```bash
 mnemos init                    # Initialize .mnemos/
@@ -231,7 +268,7 @@ mnemos add goal "Build auth"   # Create a GoalNode
 mnemos bridge-icpg             # Import iCPG ReasonNodes
 ```
 
-**Overhead:** 280ms latency per tool call, 0 context tokens during FLOW state, 84KB on disk. Token signal auto-feeds via statusline (exact) or JSONL fallback (~1-2pp accuracy).
+**Overhead:** ~5ms per tool call (fast path), 84KB on disk. Token signal auto-feeds via statusline.
 
 ## iCPG — Intent-Augmented Code Property Graph
 
