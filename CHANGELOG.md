@@ -6,6 +6,70 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.0] - 2026-04-03
+
+### Added
+
+#### Mnemos — Task-Scoped Memory Lifecycle
+Agents crash when context fills up. Claude Code's compaction is lossy — it summarizes everything uniformly. Mnemos solves this with typed memory, continuous fatigue monitoring, and checkpoint/resume.
+
+- **`scripts/mnemos/`** — Python package (zero external dependencies)
+  - `models.py` — MnemoNode (8 types with typed eviction policies), FatigueState, CheckpointNode
+  - `store.py` — SQLite MnemoGraph storage with mnemo_nodes, checkpoints, fatigue_log tables
+  - `fatigue.py` — 4-dimension fatigue model from passively observed signals (no agent cooperation needed)
+  - `signals.py` — Behavioral signal collection from hooks (scope scatter, re-read ratio, error density)
+  - `checkpoint.py` — CheckpointNode write/load with iCPG bridge, git state capture, formatted resume output
+  - `consolidation.py` — Micro-consolidation: compress ResultNodes, evict cold ContextNodes, decay weights
+  - `__main__.py` — CLI: init, status, fatigue, checkpoint, resume, consolidate, nodes, add, bridge-icpg
+
+- **4-Dimension Fatigue Model** (all passively observed from hooks):
+  - Token utilization (0.40) — real context_window.used_percentage from statusline
+  - Scope scatter (0.25) — unique directories in recent tool calls (from PreToolUse)
+  - Re-read ratio (0.20) — files Read more than once, strongest signal of context loss (from PreToolUse)
+  - Error density (0.15) — failed tool calls ratio (from PostToolUse)
+  - States: FLOW (0-0.4), COMPRESS (0.4-0.6), PRE-SLEEP (0.6-0.75), REM (0.75-0.9), EMERGENCY (0.9+)
+
+- **Auto-Feeding Token Signal**:
+  - `templates/mnemos-statusline.sh` — Statusline receives `context_window` JSON from Claude Code, writes `fatigue.json`, delegates display to ccusage (if installed) or shows simple context %
+  - JSONL fallback in PostToolUse — reads conversation JSONL to estimate context usage when statusline not configured (0.75 correction factor for cache overhead, ~1-2pp accuracy)
+  - `statusLine` config added to `templates/settings.json` — auto-activates on install, no separate configuration needed
+
+- **Fatigue-Aware Hook System**:
+  - `templates/mnemos-pre-edit.sh` — PreToolUse: logs file signals, reads fatigue, auto-checkpoints at 0.60+, auto-consolidates at 0.40+, includes iCPG context
+  - `templates/mnemos-post-tool.sh` — PostToolUse: logs tool success/failure for error density, auto-feeds token signal from JSONL when statusline is stale
+  - `templates/mnemos-session-start.sh` — SessionStart: loads checkpoint on resume, bridges iCPG state
+  - `templates/mnemos-pre-compact.sh` — PreCompact: emergency checkpoint + typed preservation priorities (NEVER DROP goals/constraints, OK TO DROP file contents)
+  - `templates/mnemos-stop-checkpoint.sh` — Stop: writes final session checkpoint
+
+- **MnemoNode Eviction Policies**:
+  - GoalNodes, ConstraintNodes, CheckpointNodes, HandoffNodes: NEVER evicted
+  - ResultNodes, WorkingNodes, SkillNodes: compressed first (summary kept), then evictable
+  - ContextNodes: evictable when activation weight drops below threshold
+
+- **iCPG Bridge**: `mnemos bridge-icpg` imports ReasonNodes as GoalNodes, postconditions/invariants as ConstraintNodes
+
+- **Skill + Commands**:
+  - `skills/mnemos/SKILL.md` — Full skill documentation with fatigue states, CLI reference, agent instructions
+  - `commands/mnemos-status.md` — `/mnemos-status` slash command
+  - `commands/mnemos-checkpoint.md` — `/mnemos-checkpoint` slash command
+
+- **Documentation**:
+  - `docs/mnemos-implementation.md` — Implementation addendum for the Mnemos RFC
+
+### Changed
+
+#### iCPG Fixes
+- `scripts/icpg/bootstrap.py` — Fixed `_get_commits()` git log parsing (was producing 0 symbols linked)
+- `scripts/icpg/drift.py` — Added `check_file_drift()` for fast, file-scoped drift (O(symbols-in-file))
+- `scripts/icpg/__main__.py` — Added `drift file <path>` subcommand, `_resolve_path()` for relative path handling
+- `templates/icpg-pre-edit.sh` — Now includes file-scoped drift detection alongside context and constraints
+
+#### Settings Template
+- `templates/settings.json` — Added `statusLine` config for auto-feeding token signal, Mnemos hooks replace standalone iCPG hooks, added PostToolUse hook, added mnemos permission allows
+- `templates/CLAUDE.md` — Added `@.claude/skills/mnemos/SKILL.md` to skill includes
+
+---
+
 ## [3.2.0] - 2026-04-02
 
 ### Added

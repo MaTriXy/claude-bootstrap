@@ -4,7 +4,7 @@
 
 **The bottleneck has moved from code generation to code comprehension.** AI can generate infinite code, but humans still need to review, understand, and maintain it. Claude Bootstrap provides guardrails that keep AI-generated code simple, secure, and verifiable.
 
-**New in v3.0.0:** Aligned with Claude Code internals. Stop hooks for real TDD loops (replaces Ralph Wiggum plugin). `@include` directives for modular CLAUDE.md. Conditional rules with `paths:` frontmatter. Pre-configured permissions. Agent definitions with proper frontmatter. `CLAUDE.local.md` for private developer overrides.
+**New in v3.3.0:** Mnemos task-scoped memory lifecycle — 4-dimension fatigue monitoring, typed compaction guidance, checkpoint/resume across sessions. iCPG intent-augmented code property graph — track why code exists, detect drift, prevent duplicate work. Auto-feeding token signal via statusline + JSONL fallback.
 
 ## Core Philosophy
 
@@ -178,6 +178,80 @@ The hook auto-detects:
 
 Zero overhead during normal usage. Only runs when compaction actually fires.
 
+## Mnemos — Task-Scoped Memory Lifecycle
+
+Mnemos prevents lossy context compaction from destroying structured knowledge. It augments Claude Code's built-in autocompact with continuous fatigue monitoring, typed memory preservation, and checkpoint/resume.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  DEFAULT CLAUDE CODE          vs  WITH MNEMOS               │
+├─────────────────────────────────────────────────────────────┤
+│  Blind until 83.5%               Continuous 4-dim monitoring│
+│  Sudden hard compaction           Graduated: 40→60→75→83%   │
+│  Uniform summarization            Typed: goals never evict  │
+│  No cross-session memory          Auto checkpoint/resume    │
+│  No behavioral awareness          Detects re-reads, scatter │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Fatigue Model** (all 4 dimensions passively observed from hooks — no agent cooperation needed):
+
+| Dimension | Weight | Signal Source | Detects |
+|-----------|--------|---------------|---------|
+| Token utilization | 0.40 | Statusline JSON | How full the context window is |
+| Scope scatter | 0.25 | PreToolUse file paths | Agent bouncing between directories |
+| Re-read ratio | 0.20 | PreToolUse Read calls | Agent re-reading files (context loss) |
+| Error density | 0.15 | PostToolUse outcomes | Agent struggling (high error rate) |
+
+**Fatigue States:**
+- **FLOW** (0.0-0.4): Normal operation
+- **COMPRESS** (0.4-0.6): Micro-consolidation runs
+- **PRE-SLEEP** (0.6-0.75): Checkpoint written, keep changes focused
+- **REM** (0.75-0.9): Emergency checkpoint, consider wrapping up
+- **EMERGENCY** (0.9+): Checkpoint written, hand off immediately
+
+**What Survives Compaction:**
+
+| Node Type | Eviction Policy | Example |
+|-----------|----------------|---------|
+| GoalNode | NEVER evict | "Implement auth module" |
+| ConstraintNode | NEVER evict | "API backward compatibility" |
+| ResultNode | Compress first | "JWT middleware tested" → summary kept |
+| ContextNode | Evictable | File contents → re-read from disk |
+
+**CLI:**
+
+```bash
+mnemos init                    # Initialize .mnemos/
+mnemos status                  # Node counts + fatigue
+mnemos fatigue                 # Detailed 4-dimension breakdown
+mnemos checkpoint --force      # Write checkpoint now
+mnemos resume                  # Output checkpoint for session inject
+mnemos add goal "Build auth"   # Create a GoalNode
+mnemos bridge-icpg             # Import iCPG ReasonNodes
+```
+
+**Overhead:** 280ms latency per tool call, 0 context tokens during FLOW state, 84KB on disk. Token signal auto-feeds via statusline (exact) or JSONL fallback (~1-2pp accuracy).
+
+## iCPG — Intent-Augmented Code Property Graph
+
+iCPG tracks *why* code exists, not just what it does. Every code change is linked to a ReasonNode that captures the intent, postconditions, and invariants.
+
+```bash
+icpg create "Implement auth" --scope src/auth/   # Create intent
+icpg record src/auth/middleware.ts                # Link symbols
+icpg query constraints src/auth/middleware.ts     # Get invariants
+icpg drift                                        # Check for drift
+icpg bootstrap                                    # Infer from git history
+```
+
+**Pre-Task Queries** (injected automatically via PreToolUse hook):
+- `icpg query context <file>` — What intents touch this file?
+- `icpg query constraints <file>` — What invariants must hold?
+- `icpg drift file <file>` — Has this file drifted from its intent?
+
+**6-Dimension Drift Detection:** spec drift, decision drift, ownership drift, test drift, usage drift, dependency drift.
+
 ## Pre-configured Permissions
 
 `.claude/settings.json` includes permission rules so users don't get pestered for routine operations:
@@ -279,11 +353,18 @@ your-project/
 │   │   ├── base/SKILL.md
 │   │   ├── iterative-development/SKILL.md
 │   │   ├── security/SKILL.md
+│   │   ├── mnemos/SKILL.md
 │   │   └── [framework]/SKILL.md
-│   └── settings.json         # Permissions + Stop hooks
+│   └── settings.json         # Permissions + hooks + statusline
 ├── scripts/
 │   ├── tdd-loop-check.sh     # Stop hook script for TDD loops
-│   └── pre-compact.sh        # PreCompact hook for smarter compaction
+│   ├── icpg/                 # Intent-Augmented Code Property Graph
+│   └── mnemos/               # Task-Scoped Memory Lifecycle
+├── .mnemos/                  # Mnemos state (auto-created, gitignored)
+│   ├── mnemo.db              # SQLite MnemoGraph
+│   ├── fatigue.json          # Live fatigue signal
+│   ├── signals.jsonl         # Behavioral signal log
+│   └── checkpoint-latest.json # Most recent checkpoint
 ├── .github/workflows/
 │   ├── quality.yml
 │   └── security.yml
@@ -306,13 +387,15 @@ your-project/
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Skills Included (57 Skills)
+## Skills Included (59 Skills)
 
 ### Core Skills
 | Skill | Purpose |
 |-------|---------|
 | `base.md` | Universal patterns, constraints, TDD workflow, atomic todos |
 | `iterative-development.md` | TDD loops via Stop hooks (replaces Ralph Wiggum) |
+| `mnemos.md` | Task-scoped memory lifecycle — fatigue monitoring, checkpoints, typed compaction |
+| `icpg.md` | Intent-augmented code property graph — track why code exists, detect drift |
 | `code-review.md` | Mandatory code reviews - Claude, Codex, Gemini, or multi-engine |
 | `codex-review.md` | OpenAI Codex CLI code review |
 | `gemini-review.md` | Google Gemini CLI code review, 1M token context |
@@ -438,7 +521,9 @@ brew install supabase/tap/supabase && supabase login
 | **Permissions** | Manual approval for everything | Pre-configured allow/deny in settings.json |
 | **Developer Overrides** | None | `CLAUDE.local.md` (gitignored, higher priority) |
 | **Framework Rules** | Always loaded (57 skills = token waste) | Conditional rules activate by file path |
-| **Compaction** | Generic summarization | PreCompact hook injects project-specific priorities |
+| **Compaction** | Generic summarization | PreCompact hook + Mnemos typed preservation |
+| **Memory** | Lost on compaction/new session | Mnemos checkpoint/resume across sessions |
+| **Intent Tracking** | None | iCPG links code to reasons, detects drift |
 | **Enforcement** | "STRICTLY ENFORCED" prose | Real hooks that run code |
 
 ## Contributing

@@ -1,4 +1,9 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "scripts/mnemos-statusline.sh",
+    "padding": 0
+  },
   "permissions": {
     "allow": [
       "Bash(npm test *)",
@@ -22,7 +27,9 @@
       "Bash(head *)",
       "Bash(wc *)",
       "Bash(icpg *)",
-      "Bash(python -m icpg *)"
+      "Bash(python -m icpg *)",
+      "Bash(mnemos *)",
+      "Bash(python -m mnemos *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -40,9 +47,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "scripts/pre-compact.sh",
-            "timeout": 5,
-            "statusMessage": "Injecting project-specific compaction priorities..."
+            "command": "scripts/mnemos-pre-compact.sh",
+            "timeout": 8,
+            "statusMessage": "Writing emergency checkpoint + compaction priorities..."
           }
         ]
       }
@@ -53,9 +60,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "scripts/icpg-pre-edit.sh",
-            "timeout": 3,
-            "statusMessage": "Checking intent context..."
+            "command": "scripts/mnemos-pre-edit.sh",
+            "timeout": 5,
+            "statusMessage": "Checking fatigue + intent context..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/mnemos-post-tool.sh",
+            "timeout": 1,
+            "statusMessage": "Logging tool outcome..."
           }
         ]
       }
@@ -74,6 +93,12 @@
             "command": "scripts/icpg-stop-record.sh",
             "timeout": 5,
             "statusMessage": "Recording symbols to intent graph..."
+          },
+          {
+            "type": "command",
+            "command": "scripts/mnemos-stop-checkpoint.sh",
+            "timeout": 5,
+            "statusMessage": "Writing session checkpoint..."
           }
         ]
       }
@@ -83,8 +108,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'TDD loop active via Stop hook. Tests run automatically after each response.'",
-            "statusMessage": "Loading project context..."
+            "command": "scripts/mnemos-session-start.sh",
+            "timeout": 5,
+            "statusMessage": "Loading session checkpoint + project context..."
           }
         ]
       }

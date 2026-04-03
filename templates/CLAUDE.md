@@ -4,6 +4,7 @@
 @.claude/skills/base/SKILL.md
 @.claude/skills/iterative-development/SKILL.md
 @.claude/skills/security/SKILL.md
+@.claude/skills/mnemos/SKILL.md
 
 ## Project Context
 - Language: [e.g., TypeScript]
