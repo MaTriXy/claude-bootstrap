@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [3.3.1] - 2026-04-03
+
+### Added
+- **Post-Compaction Task Restoration** (Two-Layer Defense)
+  - `templates/mnemos-post-compact-inject.sh` — PreToolUse hook (no matcher, fires on ALL tools) that detects compaction via `.mnemos/just-compacted` marker and re-injects the full checkpoint into Claude's context. Fast path ~5ms when no compaction, ~100ms injection when triggered.
+  - `build_task_narrative()` in `checkpoint.py` — Reads signals.jsonl to build human-readable summary of recent activity (files edited, read counts, focus area, error patterns). Automatically included in checkpoints.
+  - `format_for_post_compact_injection()` in `checkpoint.py` — Formats checkpoint as structured restoration block with goal, constraints, activity narrative, progress, key files, git state.
+  - Compaction marker system (`write_compaction_marker`, `check_compaction_marker`, `consume_compaction_marker`) — Atomic marker write/consume to prevent parallel injection.
+
+### Changed
+- **`mnemos-pre-compact.sh`** — Enhanced from advisory to assertive. Now includes inline checkpoint content in preservation instructions, writes compaction marker for Layer 2, builds task narrative from signals, and uses stronger verbatim framing.
+- **`CheckpointNode`** — Added `task_narrative` (str) and `recent_files` (list[dict]) fields for richer checkpoint content.
+- **`settings.json`** — Added new PreToolUse entry (no matcher) for `mnemos-post-compact-inject.sh` before the existing Edit|Write matcher.
+- **`SKILL.md`** — Documented post-compaction recovery mechanism.
+
 ## [3.3.0] - 2026-04-03
 
 ### Added

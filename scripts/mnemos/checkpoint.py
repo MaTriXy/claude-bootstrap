@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 import subprocess
+import time
+from collections import Counter
 from pathlib import Path
 
 from .models import CheckpointNode, _now, _uuid
+from .signals import read_recent_signals
 from .store import MnemosStore
 
 
@@ -58,6 +61,9 @@ def write_checkpoint(
         n.content for n in working_nodes[:3]
     )
 
+    # Task narrative and recent files from signals
+    narrative, recent_files = build_task_narrative(store.project_dir)
+
     # Git state
     git_state = _get_git_state(store.project_dir)
 
@@ -83,6 +89,8 @@ def write_checkpoint(
         active_results=results,
         current_subgoal=current_subgoal,
         working_memory=working_memory,
+        task_narrative=narrative,
+        recent_files=recent_files,
         fatigue_at_checkpoint=fatigue_score,
         git_state=git_state,
         icpg_state=icpg_state,
@@ -154,6 +162,13 @@ def _format_checkpoint(data: dict) -> str:
             lines.append(f'- {c}')
         lines.append('')
 
+    # What was being worked on (task narrative)
+    narrative = data.get('task_narrative', '')
+    if narrative:
+        lines.append('### What You Were Working On')
+        lines.append(narrative)
+        lines.append('')
+
     # Current task
     subgoal = data.get('current_subgoal', '')
     if subgoal:
@@ -174,6 +189,20 @@ def _format_checkpoint(data: dict) -> str:
         lines.append('### Progress So Far')
         for r in results:
             lines.append(f'- {r}')
+        lines.append('')
+
+    # Recent files
+    recent = data.get('recent_files', [])
+    if recent:
+        lines.append('### Key Files (from recent activity)')
+        for f in recent[:10]:
+            parts = []
+            if f.get('edits', 0) > 0:
+                parts.append(f'edited {f["edits"]}x')
+            if f.get('reads', 0) > 0:
+                parts.append(f'read {f["reads"]}x')
+            detail = ', '.join(parts) if parts else 'touched'
+            lines.append(f'- {f.get("path", "?")} ({detail})')
         lines.append('')
 
     # Git state
@@ -283,6 +312,267 @@ def _get_icpg_state(icpg_store) -> dict:
     return state
 
 
+def build_task_narrative(project_dir: str | Path) -> tuple[str, list[dict]]:
+    """Build a human-readable task narrative from recent signals.
+
+    Reads signals.jsonl and produces:
+    1. A narrative string describing recent activity
+    2. A list of recent files with read/edit counts
+
+    Returns:
+        (narrative_text, recent_files_list)
+    """
+    signals = read_recent_signals(str(project_dir), limit=50)
+    if not signals:
+        return ('', [])
+
+    # Count file interactions
+    file_edits: Counter = Counter()
+    file_reads: Counter = Counter()
+    tool_counts: Counter = Counter()
+    error_count = 0
+    total_outcomes = 0
+
+    for s in signals:
+        tool = s.get('tool', '')
+        fp = s.get('file_path', '')
+        tool_counts[tool] += 1
+
+        if fp:
+            if tool in ('Edit', 'Write'):
+                file_edits[fp] += 1
+            elif tool == 'Read':
+                file_reads[fp] += 1
+
+        if 'success' in s:
+            total_outcomes += 1
+            if not s['success']:
+                error_count += 1
+
+    # Build narrative
+    parts = []
+
+    # Most-edited files
+    top_edits = file_edits.most_common(5)
+    if top_edits:
+        edit_parts = []
+        for fp, count in top_edits:
+            name = Path(fp).name
+            edit_parts.append(f'{name} ({count}x)')
+        parts.append(f'Editing: {", ".join(edit_parts)}')
+
+    # Most-read files
+    top_reads = file_reads.most_common(5)
+    if top_reads:
+        read_parts = []
+        for fp, count in top_reads:
+            name = Path(fp).name
+            read_parts.append(f'{name} ({count}x)')
+        parts.append(f'Reading: {", ".join(read_parts)}')
+
+    # Tool activity
+    other_tools = {t: c for t, c in tool_counts.items()
+                   if t not in ('Edit', 'Write', 'Read')}
+    if other_tools:
+        tool_parts = [f'{t}:{c}' for t, c in
+                      sorted(other_tools.items(), key=lambda x: -x[1])]
+        parts.append(f'Other tools: {", ".join(tool_parts[:5])}')
+
+    # Focus area (most common directory)
+    all_files = list(file_edits.keys()) + list(file_reads.keys())
+    if all_files:
+        dir_counts: Counter = Counter()
+        for fp in all_files:
+            parent = str(Path(fp).parent)
+            # Shorten to relative if possible
+            try:
+                parent = str(Path(parent).relative_to(Path.cwd()))
+            except ValueError:
+                pass
+            dir_counts[parent] += 1
+        top_dir = dir_counts.most_common(1)[0]
+        parts.append(f'Focus area: {top_dir[0]}/')
+
+    # Errors
+    if error_count > 0:
+        parts.append(f'Errors: {error_count}/{total_outcomes} tool calls failed')
+
+    narrative = '. '.join(parts) + '.' if parts else ''
+
+    # Build recent files list
+    all_touched = set(file_edits.keys()) | set(file_reads.keys())
+    recent_files = []
+    for fp in all_touched:
+        entry = {'path': fp}
+        if file_edits[fp]:
+            entry['edits'] = file_edits[fp]
+        if file_reads[fp]:
+            entry['reads'] = file_reads[fp]
+        recent_files.append(entry)
+    # Sort by total activity
+    recent_files.sort(
+        key=lambda x: x.get('edits', 0) + x.get('reads', 0),
+        reverse=True
+    )
+
+    return (narrative, recent_files[:15])
+
+
+def format_for_post_compact_injection(
+    project_dir: str = '.',
+    checkpoint_path: str | None = None
+) -> str | None:
+    """Format checkpoint as a rich injection block for post-compaction context.
+
+    Called by mnemos-post-compact-inject.sh after compaction is detected.
+    Returns a structured block that Claude can parse and resume from.
+    """
+    if checkpoint_path:
+        cp_path = Path(checkpoint_path)
+    else:
+        cp_path = Path(project_dir).resolve() / '.mnemos' / 'checkpoint-latest.json'
+
+    if not cp_path.exists():
+        return None
+
+    try:
+        data = json.loads(cp_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    lines = []
+    lines.append('=== MNEMOS: CONTEXT RESTORED AFTER COMPACTION ===')
+    lines.append('')
+    lines.append('Compaction just occurred. Your previous context was summarized.')
+    lines.append('Resume from this checkpoint -- DO NOT re-derive information already captured below.')
+    lines.append('')
+
+    # Goal
+    lines.append('## Goal')
+    lines.append(data.get('goal', 'No goal recorded'))
+    lines.append('')
+
+    # Constraints
+    constraints = data.get('active_constraints', [])
+    if constraints:
+        lines.append('## Active Constraints (DO NOT VIOLATE)')
+        for c in constraints:
+            lines.append(f'- {c}')
+        lines.append('')
+
+    # Task narrative
+    narrative = data.get('task_narrative', '')
+    if narrative:
+        lines.append('## What You Were Working On')
+        lines.append(narrative)
+        lines.append('')
+
+    # Current sub-goal
+    subgoal = data.get('current_subgoal', '')
+    if subgoal:
+        lines.append('## Current Sub-Goal')
+        lines.append(subgoal)
+        lines.append('')
+
+    # Working memory
+    working = data.get('working_memory', '')
+    if working:
+        lines.append('## Working Memory')
+        lines.append(working)
+        lines.append('')
+
+    # Progress
+    results = data.get('active_results', [])
+    if results:
+        lines.append('## Progress So Far')
+        for r in results:
+            lines.append(f'- {r}')
+        lines.append('')
+
+    # Recent files
+    recent = data.get('recent_files', [])
+    if recent:
+        lines.append('## Key Files (from recent activity)')
+        for f in recent[:10]:
+            parts = []
+            if f.get('edits', 0) > 0:
+                parts.append(f'edited {f["edits"]}x')
+            if f.get('reads', 0) > 0:
+                parts.append(f'read {f["reads"]}x')
+            detail = ', '.join(parts) if parts else 'touched'
+            lines.append(f'- {f.get("path", "?")} ({detail})')
+        lines.append('')
+
+    # Git state
+    git = data.get('git_state', {})
+    if git.get('branch'):
+        lines.append('## Git State')
+        lines.append(f'Branch: {git["branch"]}')
+        if git.get('uncommitted'):
+            lines.append('Uncommitted:')
+            for gf in git['uncommitted'][:10]:
+                lines.append(f'  - {gf}')
+        else:
+            lines.append('Working tree clean.')
+        lines.append('')
+
+    # iCPG
+    icpg = data.get('icpg_state')
+    if icpg:
+        lines.append('## iCPG Context')
+        if icpg.get('active_reason'):
+            lines.append(f'Active intent: {icpg["active_reason"]}')
+        if icpg.get('unresolved_drift'):
+            lines.append(f'Unresolved drift: {icpg["unresolved_drift"]}')
+        lines.append('')
+
+    # Checkpoint metadata
+    lines.append(f'Checkpoint: {data.get("id", "?")[:8]} at {data.get("created_at", "?")}')
+    lines.append(f'Fatigue at checkpoint: {data.get("fatigue_at_checkpoint", 0):.2f}')
+    lines.append('')
+    lines.append('=== Resume work from this checkpoint. Ask the user to confirm the task if unclear. ===')
+
+    return '\n'.join(lines)
+
+
+def write_compaction_marker(project_dir: str = '.') -> None:
+    """Write the just-compacted marker file for post-compaction detection."""
+    marker = Path(project_dir).resolve() / '.mnemos' / 'just-compacted'
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(json.dumps({
+        'timestamp': time.time(),
+        'reason': 'pre_compact_hook'
+    }))
+
+
+def check_compaction_marker(project_dir: str = '.') -> bool:
+    """Check if a fresh compaction marker exists (< 5 minutes old)."""
+    marker = Path(project_dir).resolve() / '.mnemos' / 'just-compacted'
+    if not marker.exists():
+        return False
+    try:
+        data = json.loads(marker.read_text())
+        age = time.time() - data.get('timestamp', 0)
+        return age < 300  # 5 minutes
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
+def consume_compaction_marker(project_dir: str = '.') -> bool:
+    """Atomically consume the compaction marker (rename then delete).
+
+    Returns True if marker was consumed, False if already consumed or missing.
+    """
+    marker = Path(project_dir).resolve() / '.mnemos' / 'just-compacted'
+    consumed = marker.with_suffix('.consumed')
+    try:
+        marker.rename(consumed)
+        consumed.unlink(missing_ok=True)
+        return True
+    except (OSError, FileNotFoundError):
+        return False
+
+
 def _checkpoint_to_dict(cp: CheckpointNode) -> dict:
     """Serialize CheckpointNode to JSON-safe dict."""
     return {
@@ -293,6 +583,8 @@ def _checkpoint_to_dict(cp: CheckpointNode) -> dict:
         'active_results': cp.active_results,
         'current_subgoal': cp.current_subgoal,
         'working_memory': cp.working_memory,
+        'task_narrative': cp.task_narrative,
+        'recent_files': cp.recent_files,
         'fatigue_at_checkpoint': cp.fatigue_at_checkpoint,
         'git_state': cp.git_state,
         'icpg_state': cp.icpg_state,

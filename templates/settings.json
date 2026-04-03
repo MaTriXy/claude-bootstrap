@@ -56,6 +56,16 @@
     ],
     "PreToolUse": [
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "scripts/mnemos-post-compact-inject.sh",
+            "timeout": 2,
+            "statusMessage": "Checking for post-compaction restore..."
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write",
         "hooks": [
           {

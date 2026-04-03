@@ -166,6 +166,8 @@ class CheckpointNode:
     active_results: list[str] = field(default_factory=list)
     current_subgoal: str = ''
     working_memory: str = ''
+    task_narrative: str = ''
+    recent_files: list[dict] = field(default_factory=list)
     fatigue_at_checkpoint: float = 0.0
     git_state: dict = field(default_factory=dict)
     icpg_state: dict | None = None

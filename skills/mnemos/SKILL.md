@@ -35,8 +35,16 @@ Fatigue states and actions:
 ### Automatic (hooks handle everything):
 1. **Statusline** writes `fatigue.json` on every API call
 2. **PreToolUse** hook reads fatigue before every edit, auto-checkpoints at 0.60+
-3. **PreCompact** hook writes emergency checkpoint and tells summarizer what to preserve
-4. **SessionStart** hook loads last checkpoint on resume
+3. **PreCompact** hook writes emergency checkpoint, compaction marker, and tells summarizer what to preserve
+4. **Post-Compaction Injection** (PreToolUse, no matcher) detects the compaction marker on the first tool call after compaction and re-injects the full checkpoint into context
+5. **SessionStart** hook loads last checkpoint on new session resume
+
+### Post-Compaction Recovery (Two-Layer Defense):
+When Claude Code compacts the context (~83% full), Mnemos uses two layers:
+- **Layer 1**: PreCompact outputs strong preservation instructions with inline checkpoint content for the summarizer
+- **Layer 2**: After compaction, the first tool call triggers `mnemos-post-compact-inject.sh` which detects the `.mnemos/just-compacted` marker and re-injects the full checkpoint. This is the guaranteed path — it doesn't depend on the summarizer.
+
+The result: after compaction, you'll see a "CONTEXT RESTORED AFTER COMPACTION" block with your goal, constraints, what you were working on, and progress. Resume from there.
 
 ### Manual CLI:
 ```bash
