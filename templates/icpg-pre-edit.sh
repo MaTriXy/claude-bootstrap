@@ -40,15 +40,17 @@ if ! command -v icpg &>/dev/null; then
     ICPG_CMD="python -m icpg"
 fi
 
-# Query context (all 3 canonical queries)
+# Query context, constraints, and drift (file-scoped fast check)
 CONTEXT=$($ICPG_CMD query context "$FILE_PATH" 2>/dev/null)
 CONSTRAINTS=$($ICPG_CMD query constraints "$FILE_PATH" 2>/dev/null)
+DRIFT=$($ICPG_CMD drift file "$FILE_PATH" 2>/dev/null)
 
 # Only output if we have something
-if [ -n "$CONTEXT" ] || [ -n "$CONSTRAINTS" ]; then
+if [ -n "$CONTEXT" ] || [ -n "$CONSTRAINTS" ] || [ -n "$DRIFT" ]; then
     echo "═══ iCPG CONTEXT ═══"
     [ -n "$CONTEXT" ] && echo "$CONTEXT"
     [ -n "$CONSTRAINTS" ] && echo -e "\n$CONSTRAINTS"
+    [ -n "$DRIFT" ] && echo -e "\n$DRIFT"
     echo "PRESERVE function signatures unless your task requires changing them."
     echo "═══════════════════"
 fi

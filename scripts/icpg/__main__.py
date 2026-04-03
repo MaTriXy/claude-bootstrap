@@ -11,7 +11,7 @@ from pathlib import Path
 from . import __version__
 from .bootstrap import bootstrap_from_git
 from .contracts import format_contracts, infer_contracts
-from .drift import check_all_drift
+from .drift import check_all_drift, check_file_drift
 from .models import Edge, ReasonNode, _now, _uuid
 from .store import ICPGStore
 from .symbols import extract_symbols, extract_symbols_from_files
@@ -107,6 +107,8 @@ def main(argv: list[str] | None = None) -> int:
     p_drift = sub.add_parser('drift', help='Drift detection')
     d_sub = p_drift.add_subparsers(dest='drift_action')
     d_sub.add_parser('check', help='Run full drift scan')
+    d_file = d_sub.add_parser('file', help='Check drift for a single file (fast)')
+    d_file.add_argument('file_path', help='File path to check')
     d_resolve = d_sub.add_parser('resolve', help='Resolve a drift event')
     d_resolve.add_argument('event_id', help='Drift event ID')
 
@@ -263,8 +265,17 @@ def cmd_query(store: ICPGStore, args) -> int:
         return 1
 
 
+def _resolve_path(store: ICPGStore, file_path: str) -> str:
+    """Resolve relative paths to absolute, matching DB storage format."""
+    p = Path(file_path)
+    if not p.is_absolute():
+        p = store.project_dir / p
+    return str(p.resolve())
+
+
 def _query_context(store: ICPGStore, file_path: str) -> int:
-    reasons = store.get_reasons_for_file(file_path)
+    resolved = _resolve_path(store, file_path)
+    reasons = store.get_reasons_for_file(resolved)
     if not reasons:
         return 0
 
@@ -303,7 +314,8 @@ def _query_blast(store: ICPGStore, reason_id: str) -> int:
 
 
 def _query_constraints(store: ICPGStore, file_path: str) -> int:
-    constraints = store.get_constraints_for_scope([file_path])
+    resolved = _resolve_path(store, file_path)
+    constraints = store.get_constraints_for_scope([resolved])
     if not constraints:
         return 0
 
@@ -379,14 +391,47 @@ def cmd_drift(store: ICPGStore, args) -> int:
             print(f'         Dimensions: {dims}')
         return 0
 
+    elif args.drift_action == 'file':
+        resolved = _resolve_path(store, args.file_path)
+        events = check_file_drift(store, resolved)
+        if not events:
+            return 0
+
+        # Persist events
+        for event in events:
+            store.create_drift_event(event)
+
+        basename = Path(resolved).name
+        print(f'DRIFT: {len(events)} symbols drifted in {basename}')
+        for e in events:
+            sym = store._get_symbol(e.symbol_id)
+            name = sym.name if sym else '???'
+            dims = ', '.join(
+                f'{d}({s:.2f})'
+                for d, s in zip(e.drift_dimensions, _drift_scores(e))
+            )
+            print(f'  [{e.severity:.2f}] {name} — {dims}')
+        return 0
+
     elif args.drift_action == 'resolve':
         store.resolve_drift(args.event_id)
         print(f'Resolved drift event {args.event_id}')
         return 0
 
     else:
-        print('Specify: drift check or drift resolve <id>')
+        print('Specify: drift check, drift file <path>, or drift resolve <id>')
         return 1
+
+
+def _drift_scores(event) -> list[float]:
+    """Extract per-dimension scores from drift event description."""
+    import re
+    scores = []
+    for match in re.finditer(r'\w+\((\d+\.\d+)\)', event.description):
+        scores.append(float(match.group(1)))
+    if not scores:
+        scores = [event.severity] * len(event.drift_dimensions)
+    return scores
 
 
 def cmd_bootstrap(store: ICPGStore, args) -> int:

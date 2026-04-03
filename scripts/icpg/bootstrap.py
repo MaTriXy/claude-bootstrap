@@ -133,7 +133,7 @@ def _get_commits(project_dir: Path, since: str) -> list[dict]:
         result = subprocess.run(
             [
                 'git', 'log', f'--since={since}',
-                '--format=%H|||%an|||%aI|||%s%n%b|||END|||',
+                '--format=__COMMIT__%n%H%n%an%n%aI%n%s',
                 '--name-only'
             ],
             capture_output=True, text=True, timeout=30,
@@ -146,7 +146,7 @@ def _get_commits(project_dir: Path, since: str) -> list[dict]:
         return []
 
     commits = []
-    raw_blocks = result.stdout.split('|||END|||')
+    raw_blocks = result.stdout.split('__COMMIT__\n')
 
     for block in raw_blocks:
         block = block.strip()
@@ -154,25 +154,24 @@ def _get_commits(project_dir: Path, since: str) -> list[dict]:
             continue
 
         lines = block.split('\n')
-        if not lines:
+        if len(lines) < 4:
             continue
 
-        # Parse header
-        header = lines[0]
-        parts = header.split('|||')
-        if len(parts) < 4:
-            continue
+        sha = lines[0].strip()
+        author = lines[1].strip()
+        date = lines[2].strip()
+        message = lines[3].strip()
 
-        sha = parts[0].strip()
-        author = parts[1].strip()
-        date = parts[2].strip()
-        message = parts[3].strip()
-
-        # Parse files (lines after header that look like file paths)
-        files = [
-            l.strip() for l in lines[1:]
-            if l.strip() and not l.startswith('|||') and '/' in l or '.' in l
-        ]
+        # Files come after a blank line separator
+        files = []
+        past_blank = False
+        for line in lines[4:]:
+            stripped = line.strip()
+            if not stripped:
+                past_blank = True
+                continue
+            if past_blank and stripped:
+                files.append(stripped)
 
         commits.append({
             'sha': sha,

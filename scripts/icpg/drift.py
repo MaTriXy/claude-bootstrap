@@ -10,6 +10,17 @@ from .store import ICPGStore
 from .symbols import extract_symbols
 
 
+def check_file_drift(store: ICPGStore, file_path: str) -> list[DriftEvent]:
+    """Check drift for symbols in a single file only. Fast path for hooks."""
+    symbols = store.get_symbols_for_file(file_path)
+    events = []
+    for sym in symbols:
+        event = check_symbol_drift(store, sym.id)
+        if event:
+            events.append(event)
+    return events
+
+
 def check_all_drift(store: ICPGStore) -> list[DriftEvent]:
     """Full drift scan across all tracked symbols."""
     events = []
